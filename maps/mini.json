@@ -1,0 +1,73 @@
+{
+    "territories": [
+        "Peak",
+        "Valley",
+        "Meadow",
+        "Ridge",
+        "Island",
+        "Bay",
+        "Cove",
+        "Bridge"
+    ],
+    "borders": {
+        "Peak": [
+            "Valley",
+            "Ridge"
+        ],
+        "Valley": [
+            "Peak",
+            "Meadow",
+            "Bridge"
+        ],
+        "Meadow": [
+            "Valley",
+            "Ridge"
+        ],
+        "Ridge": [
+            "Peak",
+            "Meadow"
+        ],
+        "Bridge": [
+            "Valley",
+            "Island"
+        ],
+        "Island": [
+            "Bridge",
+            "Bay",
+            "Cove"
+        ],
+        "Bay": [
+            "Island",
+            "Cove"
+        ],
+        "Cove": [
+            "Island",
+            "Bay"
+        ]
+    },
+    "continents": {
+        "The Highlands": {
+            "territories": [
+                "Peak",
+                "Valley",
+                "Meadow",
+                "Ridge"
+            ],
+            "bonus": 3
+        },
+        "The Lowlands": {
+            "territories": [
+                "Island",
+                "Bay",
+                "Cove"
+            ],
+            "bonus": 2
+        },
+        "Neutral Zone": {
+            "territories": [
+                "Bridge"
+            ],
+            "bonus": 0
+        }
+    }
+}
