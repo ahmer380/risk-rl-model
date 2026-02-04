@@ -21,7 +21,7 @@ class Continent:
         return f"Continent(name={self.name}, territories={", ".join(territory.name for territory in self.territories)}, bonus={self.bonus})"
 
 class RiskMap:
-    def __init__(self, name, territories: Set[Territory], continents: Set[Continent]):
+    def __init__(self, name: str, territories: Set[Territory], continents: Set[Continent]):
         self.name = name
         self.territories = territories
         self.continents = continents
