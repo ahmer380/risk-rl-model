@@ -1,4 +1,5 @@
 {
+    "name": "Mini Risk Map",
     "territories": [
         "Peak",
         "Valley",
@@ -8,6 +9,11 @@
         "Bay",
         "Cove",
         "Bridge"
+    ],
+    "continents": [
+        "The Highlands",
+        "The Lowlands",
+        "Neutral Zone"
     ],
     "borders": {
         "Peak": [
@@ -45,29 +51,19 @@
             "Bay"
         ]
     },
-    "continents": {
-        "The Highlands": {
-            "territories": [
-                "Peak",
-                "Valley",
-                "Meadow",
-                "Ridge"
-            ],
-            "bonus": 3
-        },
-        "The Lowlands": {
-            "territories": [
-                "Island",
-                "Bay",
-                "Cove"
-            ],
-            "bonus": 2
-        },
-        "Neutral Zone": {
-            "territories": [
-                "Bridge"
-            ],
-            "bonus": 0
-        }
+    "territory_to_continent": {
+        "Peak": "The Highlands",
+        "Valley": "The Highlands",
+        "Meadow": "The Highlands",
+        "Ridge": "The Highlands",
+        "Island": "The Lowlands",
+        "Bay": "The Lowlands",
+        "Cove": "The Lowlands",
+        "Bridge": "Neutral Zone"
+    },
+    "continent_bonuses": {
+        "The Highlands": 3,
+        "The Lowlands": 2,
+        "Neutral Zone": 0
     }
 }

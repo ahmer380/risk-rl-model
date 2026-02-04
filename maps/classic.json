@@ -1,4 +1,5 @@
 {
+    "name": "Classic Risk Map",
     "territories": [
         "Alaska",
         "Alberta",
@@ -42,6 +43,14 @@
         "Indonesia",
         "New Guinea",
         "Western Australia"
+    ],
+    "continents": [
+        "North America",
+        "South America",
+        "Europe",
+        "Africa",
+        "Asia",
+        "Australia"
     ],
     "borders": {
         "Alaska": [
@@ -171,10 +180,10 @@
         "East Africa": [
             "Egypt",
             "Middle East",
-            "Siam",
             "Madagascar",
             "South Africa",
-            "Congo"
+            "Congo",
+            "North Africa"
         ],
         "Egypt": [
             "North Africa",
@@ -248,7 +257,6 @@
         "Mongolia": [
             "Siberia",
             "China",
-            "Siam",
             "Japan",
             "Irkutsk",
             "Kamchatka"
@@ -296,78 +304,56 @@
             "Eastern Australia"
         ]
     },
-    "continents": {
-        "North America": {
-            "territories": [
-                "Alaska",
-                "Alberta",
-                "Central America",
-                "Eastern United States",
-                "Greenland",
-                "Northwest Territory",
-                "Ontario",
-                "Quebec",
-                "Western United States"
-            ],
-            "bonus": 5
-        },
-        "South America": {
-            "territories": [
-                "Argentina",
-                "Brazil",
-                "Peru",
-                "Venezuela"
-            ],
-            "bonus": 2
-        },
-        "Europe": {
-            "territories": [
-                "Great Britain",
-                "Iceland",
-                "Northern Europe",
-                "Scandinavia",
-                "Southern Europe",
-                "Ukraine",
-                "Western Europe"
-            ],
-            "bonus": 5
-        },
-        "Africa": {
-            "territories": [
-                "Congo",
-                "East Africa",
-                "Egypt",
-                "Madagascar",
-                "North Africa",
-                "South Africa"
-            ],
-            "bonus": 3
-        },
-        "Asia": {
-            "territories": [
-                "Afghanistan",
-                "China",
-                "India",
-                "Irkutsk",
-                "Japan",
-                "Kamchatka",
-                "Middle East",
-                "Mongolia",
-                "Siam",
-                "Siberia",
-                "Ural",
-                "Yakutsk"
-            ],
-            "bonus": 7
-        },
-        "Australia": {
-            "territories": [
-                "Eastern Australia",
-                "Indonesia",
-                "New Guinea",
-                "Western Australia"
-            ],
-            "bonus": 2
-        }
+    "territory_to_continent": {
+        "Alaska": "North America",
+        "Alberta": "North America",
+        "Central America": "North America",
+        "Eastern United States": "North America",
+        "Greenland": "North America",
+        "Northwest Territory": "North America",
+        "Ontario": "North America",
+        "Quebec": "North America",
+        "Western United States": "North America",
+        "Argentina": "South America",
+        "Brazil": "South America",
+        "Peru": "South America",
+        "Venezuela": "South America",
+        "Great Britain": "Europe",
+        "Iceland": "Europe",
+        "Northern Europe": "Europe",
+        "Scandinavia": "Europe",
+        "Southern Europe": "Europe",
+        "Ukraine": "Europe",
+        "Western Europe": "Europe",
+        "Congo": "Africa",
+        "East Africa": "Africa",
+        "Egypt": "Africa",
+        "Madagascar": "Africa",
+        "North Africa": "Africa",
+        "South Africa": "Africa",
+        "Afghanistan": "Asia",
+        "China": "Asia",
+        "India": "Asia",
+        "Irkutsk": "Asia",
+        "Japan": "Asia",
+        "Kamchatka": "Asia",
+        "Middle East": "Asia",
+        "Mongolia": "Asia",
+        "Siam": "Asia",
+        "Siberia": "Asia",
+        "Ural": "Asia",
+        "Yakutsk": "Asia",
+        "Eastern Australia": "Australia",
+        "Indonesia": "Australia",
+        "New Guinea": "Australia",
+        "Western Australia": "Australia"
+    },
+    "continent_bonuses": {
+        "North America": 5,
+        "South America": 2,
+        "Europe": 5,
+        "Africa": 3,
+        "Asia": 7,
+        "Australia": 2
     }
 }
