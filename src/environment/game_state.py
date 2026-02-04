@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Self
 import random
 
 class GamePhase(Enum):
@@ -14,10 +15,11 @@ class GameState:
     territory_owners: list[int] # Owner player index for each territory
     territory_troops: list[int] # Number of troops in each territory
     
-    def __init__(self, num_players: int, num_territories: int):
+    def __init__(self, num_players: int, num_territories: int, reset_to_initial_state: bool = False):
         self.num_players = num_players
         self.num_territories = num_territories
-        self.reset_to_initial_state()
+        if reset_to_initial_state:
+            self.reset_to_initial_state()
 
     def reset_to_initial_state(self):
         self.current_player = 0
@@ -65,6 +67,14 @@ class GameState:
     
     def is_terminal_state(self) -> bool:
         return all(territory_owner == self.territory_owners[0] for territory_owner in self.territory_owners)
+
+    def copy(self) -> Self:
+        new_state = GameState(self.num_players, self.num_territories)
+        new_state.current_player = self.current_player
+        new_state.current_phase = self.current_phase
+        new_state.territory_owners = self.territory_owners.copy()
+        new_state.territory_troops = self.territory_troops.copy()
+        return new_state
 
     def __str__(self):
         lines = []

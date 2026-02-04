@@ -4,8 +4,8 @@ from src.environment.game_state import GamePhase, GameState
 
 class TestGameState(unittest.TestCase):
 	def test_reset_to_initial_state(self):
-		state = GameState(4, 42)
-		state.reset_to_initial_state()
+		state = GameState(4, 42, True)
+		state.reset_to_initial_state() # ensure operation is idempotent
 
 		self.assertEqual(state.current_player, 0)
 		self.assertEqual(state.current_phase, GamePhase.DRAFT)
