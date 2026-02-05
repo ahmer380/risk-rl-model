@@ -9,6 +9,7 @@ class TestGameState(unittest.TestCase):
 
 		self.assertEqual(state.current_player, 0)
 		self.assertEqual(state.current_phase, GamePhase.DRAFT)
+		self.assertEqual(state.deployment_troops, 3) # Territory partition is [11, 11, 10, 10], so each player gets 3 troops for deployment
 		
 		self.assertEqual(len(state.territory_owners), state.num_territories)
 		self.assertEqual(len(state.territory_troops), state.num_territories)
@@ -23,8 +24,6 @@ class TestGameState(unittest.TestCase):
 			troops_per_player[owner] += state.territory_troops[territory_i]
 
 		self.assertLessEqual(max(territories_per_player) - min(territories_per_player), 1) # approx equal territories
-		print(troops_per_player)
-		print(territories_per_player)
 		self.assertTrue(all(troops == troops_per_player[0] for troops in troops_per_player)) # equal troops
 
 		self.assertFalse(state.is_terminal_state())
