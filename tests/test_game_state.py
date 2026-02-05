@@ -9,6 +9,8 @@ class TestGameState(unittest.TestCase):
 
 		self.assertEqual(state.current_player, 0)
 		self.assertEqual(state.current_phase, GamePhase.DRAFT)
+		self.assertEqual(state.player_territory_cards, [[], [], [], []])
+		self.assertEqual(state.trade_count, 0)
 		self.assertEqual(state.deployment_troops, 3) # Territory partition is [11, 11, 10, 10], so each player gets 3 troops for deployment
 		
 		self.assertEqual(len(state.territory_owners), state.num_territories)

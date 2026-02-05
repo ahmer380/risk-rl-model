@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Self
+from itertools import combinations
 
-from src.environment.game_state import GamePhase, GameState
+from src.environment.game_state import GamePhase, GameState, CombatArm, TerritoryCard
 
 class Action(ABC):    
     @abstractmethod
@@ -58,18 +59,34 @@ class DeployAction(Action):
         return f"DeployAction(deployments={self.deployments})"
 
 class TradeAction(Action):
-    def __init__(self, territory_cards: set[int]):
-        self.territory_cards = territory_cards
+    def __init__(self, territory_cards: list[TerritoryCard]):
+        assert len(territory_cards) == 3, "Must trade exactly 3 cards"
+        self.territory_cards = sorted(territory_cards, key=lambda card: card.territory_id)
     
     def apply(self, game_state: GameState) -> GameState:
-        return NotImplementedError
+        new_state = game_state.copy()
+
+        for card in self.territory_cards:
+            new_state.player_territory_cards[new_state.current_player].remove(card)
+            if new_state.territory_owners[card.territory_id] == new_state.current_player:
+                new_state.territory_troops[card.territory_id] += 2 # Bonus troops for trading in a card of a territory you own
+        
+        bonuses = [4, 6, 8, 10, 12, 15]
+        new_state.deployment_troops += bonuses[new_state.trade_count] if new_state.trade_count < len(bonuses) else new_state.trade_count * 5 - 10
+        new_state.trade_count += 1
+
+        return new_state
 
     @classmethod
     def get_action_list(cls, game_state: GameState) -> list[Self]:
         if game_state.current_phase != GamePhase.DRAFT:
             return []
-        
-        return NotImplementedError
+
+        def is_valid_set(cards: tuple[TerritoryCard, TerritoryCard, TerritoryCard]) -> bool:
+            combat_arms = {card.combat_arm for card in cards}
+            return CombatArm.WILD in combat_arms or len(combat_arms) == 1 or len(combat_arms) == 3
+
+        return [cls(list(cards)) for cards in combinations(game_state.player_territory_cards[game_state.current_player], 3) if is_valid_set(cards)]
 
 class BattleAction(Action):
     def __init__(self, attacker_territory_id: int, defender_territory_id: int):

@@ -1,6 +1,6 @@
 import unittest
 
-from src.environment.game_state import GameState, GamePhase
+from src.environment.game_state import GameState, GamePhase, CombatArm, TerritoryCard
 from src.environment.map import RiskMap
 from src.environment.actions import Action, DeployAction, TradeAction, BattleAction, TransferAction, FortifyAction, SkipAction
 
@@ -47,7 +47,42 @@ class TestDeployAction(TestAction):
         self.assertEqual(new_state.deployment_troops, 0)
 
 class TestTradeAction(TestAction):
-    pass
+    def test_get_trade_action_list_for_initial_state(self):
+        actions = TradeAction.get_action_list(self.game_state)
+        self.assertEqual(len(actions), 0)
+    
+    def test_get_trade_action_list_with_cards(self):
+        tc = self.game_state.player_territory_cards[0] = [
+            TerritoryCard(CombatArm.INFANTRY, 3),
+            TerritoryCard(CombatArm.CAVALRY, 1),
+            TerritoryCard(CombatArm.INFANTRY, 2),
+            TerritoryCard(CombatArm.WILD, 0),
+        ]
+
+        actions = TradeAction.get_action_list(self.game_state)
+        self.assertEqual(len(actions), 3) 
+        self.assertTrue(any(action.territory_cards == [tc[3], tc[1], tc[0]] for action in actions)) # 3 different cards
+        self.assertTrue(any(action.territory_cards == [tc[3], tc[1], tc[2]] for action in actions)) # 3 different cards
+        self.assertTrue(any(action.territory_cards == [tc[3], tc[2], tc[0]] for action in actions)) # 3 cards of the same type
+    
+    def get_trade_action_list_for_non_draft_phase(self):
+        self.game_state.current_phase = GamePhase.ATTACK
+        actions = TradeAction.get_action_list(self.game_state)
+        self.assertEqual(len(actions), 0)
+    
+    def test_apply_trade_action(self):
+        tc = self.game_state.player_territory_cards[0] = [
+            TerritoryCard(CombatArm.INFANTRY, 3),
+            TerritoryCard(CombatArm.CAVALRY, 1),
+            TerritoryCard(CombatArm.INFANTRY, 2),
+            TerritoryCard(CombatArm.WILD, 0),
+        ]
+        action = TradeAction([tc[0], tc[1], tc[2]])
+        new_state = action.apply(self.game_state)
+
+        self.assertEqual(len(new_state.player_territory_cards[0]), 1) # 3 cards should be removed
+        self.assertIn(tc[3], new_state.player_territory_cards[0])
+        self.assertEqual(new_state.deployment_troops, self.game_state.deployment_troops + 4) # First trade-in should give 4 troops 
 
 class TestBattleAction(TestAction):
     pass
