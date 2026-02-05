@@ -82,6 +82,7 @@ class GameState:
         new_state = GameState(self.num_players, self.num_territories)
         new_state.current_player = self.current_player
         new_state.current_phase = self.current_phase
+        new_state.deployment_troops = self.deployment_troops
         new_state.territory_owners = self.territory_owners.copy()
         new_state.territory_troops = self.territory_troops.copy()
         return new_state

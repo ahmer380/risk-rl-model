@@ -43,6 +43,8 @@ class TestDeployAction(TestAction):
         self.assertEqual(new_state.territory_troops[1], self.game_state.territory_troops[1] + 2)
         for i in range(2, len(self.game_state.territory_troops)):
             self.assertEqual(new_state.territory_troops[i], self.game_state.territory_troops[i]) # other territories should be unchanged
+        
+        self.assertEqual(new_state.deployment_troops, 0)
 
 class TestTradeAction(TestAction):
     pass
@@ -57,7 +59,27 @@ class TestFortifyAction(TestAction):
     pass
 
 class TestSkipAction(TestAction):
-    pass
+    def test_get_skip_action_list_for_initial_state(self):
+        actions = SkipAction.get_action_list(self.game_state)
+        self.assertEqual(len(actions), 0) # Skip action should not be available if there are troops to deploy during the draft phase
+    
+    def test_get_skip_action_list_after_troops_deployed(self):
+        actions = SkipAction.get_action_list(DeployAction([(0, 3)]).apply(self.game_state))
+        self.assertEqual(len(actions), 1)
+    
+    def test_apply_skip_action(self):
+        attack_phase_state = SkipAction().apply(DeployAction([(0, 3)]).apply(self.game_state))
+        self.assertEqual(attack_phase_state.current_phase, GamePhase.ATTACK)
+        self.assertEqual(attack_phase_state.current_player, 0)
+
+        fortify_phase_state = SkipAction().apply(attack_phase_state)
+        self.assertEqual(fortify_phase_state.current_phase, GamePhase.FORTIFY)
+        self.assertEqual(fortify_phase_state.current_player, 0)
+
+        next_player_state = SkipAction().apply(fortify_phase_state)
+        self.assertEqual(next_player_state.current_phase, GamePhase.DRAFT)
+        self.assertEqual(next_player_state.current_player, 1)
+        # Assertion for next_player_state.deployment_troops is not checked since RiskEnvironment injects this property
 
 if __name__ == "__main__":
     unittest.main()

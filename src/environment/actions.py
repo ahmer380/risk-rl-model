@@ -22,6 +22,7 @@ class DeployAction(Action):
     def apply(self, game_state: GameState) -> GameState:
         new_state = game_state.copy()
 
+        new_state.deployment_troops = 0
         for territory_id, troop_count in self.deployments:
             new_state.territory_troops[territory_id] += troop_count
             
@@ -137,5 +138,11 @@ class SkipAction(Action):
         return new_state
     
     @classmethod
-    def get_action_list(cls, _: GameState) -> list[Self]:
+    def get_action_list(cls, game_state: GameState) -> list[Self]:
+        if game_state.current_phase == GamePhase.DRAFT and game_state.deployment_troops > 0:
+            return []
+        
         return [cls()]
+    
+    def __repr__(self):
+        return "SkipAction()"
