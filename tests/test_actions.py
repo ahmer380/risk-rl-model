@@ -180,7 +180,13 @@ class TestSkipAction(TestAction):
         next_player_state = SkipAction().apply(fortify_phase_state)
         self.assertEqual(next_player_state.current_phase, GamePhase.DRAFT)
         self.assertEqual(next_player_state.current_player, 1)
-        # Assertion for next_player_state.deployment_troops is not checked since RiskEnvironment injects this property
+
+        fortify_phase_state.active_players = [True, False, False, True] # Simulate players 1 and 2 being eliminated
+        next_player_state = SkipAction().apply(fortify_phase_state)
+        self.assertEqual(next_player_state.current_phase, GamePhase.DRAFT)
+        self.assertEqual(next_player_state.current_player, 3)
+
+        # Assertion for next_player_state.deployment_troops is not checked since RiskEnvironment injects this property, change?
 
 if __name__ == "__main__":
     unittest.main()
