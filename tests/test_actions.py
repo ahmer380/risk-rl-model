@@ -94,6 +94,9 @@ class TestBattleAction(TestAction):
         self.game_state.territory_owners[0], self.game_state.territory_owners[1], self.game_state.territory_owners[2] = 0, 0, 0 # Player 0 owns Alaska, Alberta, and Central America
         self.game_state.territory_troops = [5] * len(self.game_state.territory_troops) 
         self.game_state.territory_troops[2] = 1 # Central America only has 1 troop, so it cannot be an attacker
+
+        self.game_state.player_territory_cards[1] = [TerritoryCard(CombatArm.WILD, 5)]
+        self.game_state.player_territory_cards[3] = [TerritoryCard(CombatArm.INFANTRY, 2)]
     
     def test_get_battle_action_list(self):
         actions = BattleAction.get_action_list(self.game_state, self.classic_map)
@@ -108,6 +111,47 @@ class TestBattleAction(TestAction):
         self.game_state.current_phase = GamePhase.FORTIFY
         actions = BattleAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0)
+    
+    def test_apply_battle_action_loss(self):
+        self.game_state.territory_troops[0] = 2
+        self.game_state.territory_troops[5] = 10
+        action = BattleAction(0, 5) # Attack from Alaska to Kamchatka, where P(Win) = 0
+        new_state = action.apply(self.game_state)
+        
+        self.assertEqual(new_state.territory_troops[0], 1) # Attacker should lose all but 1 troop
+        self.assertEqual(new_state.territory_owners[5], 1) 
+        self.assertLessEqual(new_state.territory_troops[5], 10)
+        self.assertEqual(new_state.current_territory_transfer, (-1, -1))
+        self.assertEqual(new_state.territory_captured_this_turn, False)
+    
+    def test_apply_battle_action_win_but_no_elimination(self):
+        self.game_state.territory_troops[0] = 10
+        self.game_state.territory_troops[5] = 1
+        action = BattleAction(0, 5) # Attack from Alaska to Kamchatka, where P(Win) = 1
+        new_state = action.apply(self.game_state)
+
+        self.assertGreaterEqual(new_state.territory_troops[0], 2)
+        self.assertEqual(new_state.territory_troops[5], 0)
+        self.assertEqual(new_state.current_territory_transfer, (0, 5))
+        self.assertEqual(new_state.territory_captured_this_turn, True)
+        self.assertEqual(new_state.active_players[1], True) # Defender should still be active since they own other territories
+        self.assertEqual(len(new_state.player_territory_cards[1]), 1)
+        self.assertEqual(len(new_state.player_territory_cards[0]), 0)
+    
+    def test_apply_battle_action_win_and_elimination(self):
+        self.game_state.territory_owners[5] = 3 # Only difference is that we make the defender be player 3, who only owns this territory
+        self.game_state.territory_troops[0] = 10
+        self.game_state.territory_troops[5] = 1
+        action = BattleAction(0, 5) # Attack from Alaska to Kamchatka, where P(Win) = 1
+        new_state = action.apply(self.game_state)
+
+        self.assertGreaterEqual(new_state.territory_troops[0], 2)
+        self.assertEqual(new_state.territory_troops[5], 0)
+        self.assertEqual(new_state.current_territory_transfer, (0, 5))
+        self.assertEqual(new_state.territory_captured_this_turn, True)
+        self.assertEqual(new_state.active_players[3], False) # Defender should be eliminated since they own no other territories
+        self.assertEqual(len(new_state.player_territory_cards[3]), 0)
+        self.assertEqual(len(new_state.player_territory_cards[0]), 1) 
 
 class TestTransferAction(TestAction):
     pass

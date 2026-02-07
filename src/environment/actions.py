@@ -5,6 +5,10 @@ from itertools import combinations
 from src.environment.map import RiskMap
 from src.environment.game_state import GamePhase, GameState, CombatArm, TerritoryCard
 
+from src.blitz_battle_simulator.blitz_battle_simulator import BlitzBattleSimulator
+
+battle_simulator = BlitzBattleSimulator()
+
 class Action(ABC):    
     @abstractmethod
     def apply(self, game_state: GameState) -> GameState:
@@ -95,7 +99,28 @@ class BattleAction(Action):
         self.defender_territory_id = defender_territory_id
     
     def apply(self, game_state: GameState) -> GameState:
-        return NotImplementedError
+        new_state = game_state.copy()
+
+        remaining_attacker_troops, remaining_defender_troops = battle_simulator.simulate_battle(game_state.territory_troops[self.attacker_territory_id], game_state.territory_troops[self.defender_territory_id])
+
+        new_state.territory_troops[self.attacker_territory_id] = remaining_attacker_troops
+        new_state.territory_troops[self.defender_territory_id] = remaining_defender_troops
+
+        if remaining_defender_troops == 0: # Attacker wins battle
+            previous_territory_owner = new_state.territory_owners[self.defender_territory_id]
+            new_state.territory_owners[self.defender_territory_id] = new_state.current_player
+            new_state.current_territory_transfer = (self.attacker_territory_id, self.defender_territory_id)
+            new_state.territory_captured_this_turn = True
+
+            if all(territory_owner != previous_territory_owner for territory_owner in new_state.territory_owners): # Defender is eliminated
+                new_state.active_players[previous_territory_owner] = False
+                new_state.player_territory_cards[new_state.current_player].extend(new_state.player_territory_cards[previous_territory_owner]) 
+                new_state.player_territory_cards[previous_territory_owner] = []
+
+                if new_state.is_terminal_state():
+                    pass # TODO: Handle logic here? or in env?
+
+        return new_state
 
     @classmethod
     def get_action_list(cls, game_state: GameState, risk_map: RiskMap) -> list[Self]:
