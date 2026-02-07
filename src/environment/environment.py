@@ -11,7 +11,7 @@ class RiskEnvironment:
     
     def get_action_list(self) -> list[Action]:
         action_types: list[Action] = [DeployAction, TradeAction, BattleAction, TransferAction, FortifyAction, SkipAction]
-        return [action for action_type in action_types for action in action_type.get_action_list(self.state)]
+        return [action for action_type in action_types for action in action_type.get_action_list(self.state, self.map)]
 
     def reset(self, seed=None):
         if seed is not None:

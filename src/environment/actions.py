@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Self
 from itertools import combinations
 
+from src.environment.map import RiskMap
 from src.environment.game_state import GamePhase, GameState, CombatArm, TerritoryCard
 
 class Action(ABC):    
@@ -12,7 +13,7 @@ class Action(ABC):
 
     @classmethod 
     @abstractmethod
-    def get_action_list(cls, game_state: GameState) -> list[Self]:
+    def get_action_list(cls, game_state: GameState, risk_map: RiskMap) -> list[Self]:
         """Return a list of all valid actions of this type that can be applied to the given game state."""
         pass
 
@@ -30,7 +31,7 @@ class DeployAction(Action):
         return new_state
 
     @classmethod
-    def get_action_list(cls, game_state: GameState) -> list[Self]:
+    def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
         if game_state.current_phase != GamePhase.DRAFT:
             return []
         
@@ -78,7 +79,7 @@ class TradeAction(Action):
         return new_state
 
     @classmethod
-    def get_action_list(cls, game_state: GameState) -> list[Self]:
+    def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
         if game_state.current_phase != GamePhase.DRAFT:
             return []
 
@@ -97,11 +98,20 @@ class BattleAction(Action):
         return NotImplementedError
 
     @classmethod
-    def get_action_list(cls, game_state: GameState) -> list[Self]:
+    def get_action_list(cls, game_state: GameState, risk_map: RiskMap) -> list[Self]:
         if game_state.current_phase != GamePhase.ATTACK:
             return []
         
-        return NotImplementedError
+        actions = []
+        for attacker_id in game_state.get_player_owned_territory_ids():
+            if game_state.territory_troops[attacker_id] < 2: # Need at least 2 troops to attack
+                continue
+            
+            for defender_id in risk_map.get_border_ids(attacker_id):
+                if game_state.territory_owners[defender_id] != game_state.current_player:
+                    actions.append(cls(attacker_id, defender_id))
+        
+        return actions
 
 class TransferAction(Action):
     def __init__(self, src_territory_id: int, dst_territory_id: int, troop_count: int):
@@ -118,7 +128,7 @@ class TransferAction(Action):
         return new_state
 
     @classmethod
-    def get_action_list(cls, game_state: GameState) -> list[Self]:
+    def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
         if game_state.current_phase != GamePhase.ATTACK:
             return []
         
@@ -140,7 +150,7 @@ class FortifyAction(Action):
         return new_state
 
     @classmethod
-    def get_action_list(cls, game_state: GameState) -> list[Self]:
+    def get_action_list(cls, game_state: GameState, risk_map: RiskMap) -> list[Self]:
         if game_state.current_phase != GamePhase.FORTIFY:
             return []
         
@@ -150,12 +160,12 @@ class SkipAction(Action):
     def apply(self, game_state: GameState) -> GameState:
         new_state = game_state.copy()
 
-        new_state.advance_phase()
+        new_state.advance_phase() # TODO: Disband method, put logic here instead
 
         return new_state
     
     @classmethod
-    def get_action_list(cls, game_state: GameState) -> list[Self]:
+    def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
         if game_state.current_phase == GamePhase.DRAFT and game_state.deployment_troops > 0:
             return []
         

@@ -16,7 +16,7 @@ class TestDeployAction(TestAction):
         self.assertEqual(len(player_owned_territory_ids), 11)
         self.assertEqual(self.game_state.deployment_troops, 3)
 
-        actions = DeployAction.get_action_list(self.game_state)
+        actions = DeployAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 286) # Using the Stars and Bars formula: C(n+k-1, k-1) = C(3+11-1, 11-1) = C(13, 10) = 286
         
         deployments_set = set()
@@ -32,7 +32,7 @@ class TestDeployAction(TestAction):
     
     def test_get_deploy_action_list_for_non_draft_phase(self):
         self.game_state.current_phase = GamePhase.ATTACK
-        actions = DeployAction.get_action_list(self.game_state)
+        actions = DeployAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0)
     
     def test_apply_deploy_action(self):
@@ -48,7 +48,7 @@ class TestDeployAction(TestAction):
 
 class TestTradeAction(TestAction):
     def test_get_trade_action_list_for_initial_state(self):
-        actions = TradeAction.get_action_list(self.game_state)
+        actions = TradeAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0)
     
     def test_get_trade_action_list_with_cards(self):
@@ -59,7 +59,7 @@ class TestTradeAction(TestAction):
             TerritoryCard(CombatArm.WILD, 0),
         ]
 
-        actions = TradeAction.get_action_list(self.game_state)
+        actions = TradeAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 3) 
         self.assertTrue(any(action.territory_cards == [tc[3], tc[1], tc[0]] for action in actions)) # 3 different cards
         self.assertTrue(any(action.territory_cards == [tc[3], tc[1], tc[2]] for action in actions)) # 3 different cards
@@ -67,7 +67,7 @@ class TestTradeAction(TestAction):
     
     def get_trade_action_list_for_non_draft_phase(self):
         self.game_state.current_phase = GamePhase.ATTACK
-        actions = TradeAction.get_action_list(self.game_state)
+        actions = TradeAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0)
     
     def test_apply_trade_action(self):
@@ -85,7 +85,29 @@ class TestTradeAction(TestAction):
         self.assertEqual(new_state.deployment_troops, self.game_state.deployment_troops + 4) # First trade-in should give 4 troops 
 
 class TestBattleAction(TestAction):
-    pass
+    def setUp(self):
+        super().setUp()
+
+        # Statically define territory ownership and troop counts to ensure consistent test results
+        self.game_state.current_phase = GamePhase.ATTACK
+        self.game_state.territory_owners = [1] * len(self.game_state.territory_owners)
+        self.game_state.territory_owners[0], self.game_state.territory_owners[1], self.game_state.territory_owners[2] = 0, 0, 0 # Player 0 owns Alaska, Alberta, and Central America
+        self.game_state.territory_troops = [5] * len(self.game_state.territory_troops) 
+        self.game_state.territory_troops[2] = 1 # Central America only has 1 troop, so it cannot be an attacker
+    
+    def test_get_battle_action_list(self):
+        actions = BattleAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 5)
+        self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alaska" and self.classic_map.territories[action.defender_territory_id].name == "Kamchatka" for action in actions))
+        self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alaska" and self.classic_map.territories[action.defender_territory_id].name == "Northwest Territory" for action in actions))
+        self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alberta" and self.classic_map.territories[action.defender_territory_id].name == "Northwest Territory" for action in actions))
+        self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alberta" and self.classic_map.territories[action.defender_territory_id].name == "Ontario" for action in actions))
+        self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alberta" and self.classic_map.territories[action.defender_territory_id].name == "Western United States" for action in actions))
+    
+    def test_get_battle_action_list_for_non_attack_phase(self):
+        self.game_state.current_phase = GamePhase.FORTIFY
+        actions = BattleAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 0)
 
 class TestTransferAction(TestAction):
     pass
@@ -95,11 +117,11 @@ class TestFortifyAction(TestAction):
 
 class TestSkipAction(TestAction):
     def test_get_skip_action_list_for_initial_state(self):
-        actions = SkipAction.get_action_list(self.game_state)
+        actions = SkipAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0) # Skip action should not be available if there are troops to deploy during the draft phase
     
     def test_get_skip_action_list_after_troops_deployed(self):
-        actions = SkipAction.get_action_list(DeployAction([(0, 3)]).apply(self.game_state))
+        actions = SkipAction.get_action_list(DeployAction([(0, 3)]).apply(self.game_state), self.classic_map)
         self.assertEqual(len(actions), 1)
     
     def test_apply_skip_action(self):
