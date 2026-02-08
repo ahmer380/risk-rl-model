@@ -92,6 +92,9 @@ class TradeAction(Action):
             return CombatArm.WILD in combat_arms or len(combat_arms) == 1 or len(combat_arms) == 3
 
         return [cls(list(cards)) for cards in combinations(game_state.player_territory_cards[game_state.current_player], 3) if is_valid_set(cards)]
+    
+    def __repr__(self):
+        return f"TradeAction(territory_cards={self.territory_cards})"
 
 class BattleAction(Action):
     def __init__(self, attacker_territory_id: int, defender_territory_id: int):
@@ -137,6 +140,9 @@ class BattleAction(Action):
                     actions.append(cls(attacker_id, defender_id))
         
         return actions
+    
+    def __repr__(self):
+        return f"BattleAction(attacker_territory_id={self.attacker_territory_id}, defender_territory_id={self.defender_territory_id})"
 
 class TransferAction(Action):
     def __init__(self, troop_count: int):
@@ -156,19 +162,22 @@ class TransferAction(Action):
         if game_state.current_phase != GamePhase.ATTACK or game_state.current_territory_transfer == (-1, -1):
             return []
         
-        return [cls(troop_count) for troop_count in range(1, game_state.territory_troops[game_state.current_territory_transfer[0]])] 
+        return [cls(troop_count) for troop_count in range(1, game_state.territory_troops[game_state.current_territory_transfer[0]])]
+    
+    def __repr__(self):
+        return f"TransferAction(troop_count={self.troop_count})"
 
 class FortifyAction(Action):
-    def __init__(self, src_territory_id: int, dst_territory_id: int, troop_count: int):
-        self.src_territory_id = src_territory_id
-        self.dst_territory_id = dst_territory_id
+    def __init__(self, from_territory_id: int, to_territory_id: int, troop_count: int):
+        self.from_territory_id = from_territory_id
+        self.to_territory_id = to_territory_id
         self.troop_count = troop_count
     
     def apply(self, game_state: GameState) -> GameState:
         new_state = game_state.copy()
 
-        new_state.territory_troops[self.dst_territory_id] += self.troop_count
-        new_state.territory_troops[self.src_territory_id] -= self.troop_count
+        new_state.territory_troops[self.to_territory_id] += self.troop_count
+        new_state.territory_troops[self.from_territory_id] -= self.troop_count
         new_state.advance_phase() # Always advance phase after fortify
         
         return new_state
@@ -178,7 +187,33 @@ class FortifyAction(Action):
         if game_state.current_phase != GamePhase.FORTIFY:
             return []
         
-        return NotImplementedError
+        visited: set[int] = set()
+        def get_connected_territories(territory_id) -> set[int]:
+            visited.add(territory_id)
+            connected_territories = {territory_id}
+            for border_id in risk_map.get_border_ids(territory_id):
+                if border_id not in visited and game_state.territory_owners[border_id] == game_state.current_player:
+                    connected_territories |= get_connected_territories(border_id)
+
+            return connected_territories
+
+        visited.clear()
+        actions = []
+        for territory_id in game_state.get_player_owned_territory_ids():
+            if territory_id in visited:
+                continue
+
+            connected_territories = get_connected_territories(territory_id)
+
+            for from_id in connected_territories:
+                for to_id in connected_territories:
+                    if from_id != to_id:
+                        for troop_count in range(1, game_state.territory_troops[from_id]):
+                            actions.append(cls(from_id, to_id, troop_count))
+
+            visited |= connected_territories
+
+        return actions
 
 class SkipAction(Action):
     def apply(self, game_state: GameState) -> GameState:
