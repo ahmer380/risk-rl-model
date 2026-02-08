@@ -112,6 +112,11 @@ class TestBattleAction(TestAction):
         actions = BattleAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0)
     
+    def test_get_battle_action_list_during_current_territory_transfer(self):
+        self.game_state.current_territory_transfer = (0, 5) 
+        actions = BattleAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 0) # Cannot initiate another attack while a territory transfer is still pending resolution
+    
     def test_apply_battle_action_loss(self):
         self.game_state.territory_troops[0] = 2
         self.game_state.territory_troops[5] = 10
@@ -154,7 +159,40 @@ class TestBattleAction(TestAction):
         self.assertEqual(len(new_state.player_territory_cards[0]), 1) 
 
 class TestTransferAction(TestAction):
-    pass
+    def setUp(self):
+        super().setUp()
+
+        self.game_state.current_phase = GamePhase.ATTACK
+        self.game_state.current_territory_transfer = (0, 5)
+        self.game_state.territory_owners[0] = 0
+        self.game_state.territory_troops[0] = 7
+        self.game_state.territory_owners[5] = 0
+        self.game_state.territory_troops[5] = 0
+    
+    def test_get_transfer_action_list(self):
+        actions = TransferAction.get_action_list(self.game_state, self.classic_map)
+        
+        self.assertEqual(len(actions), 6)
+        for i, action in enumerate(actions):
+            self.assertEqual(action.troop_count, i + 1)
+    
+    def test_get_transfer_action_list_while_no_territory_transfer_pending(self):
+        self.game_state.current_territory_transfer = (-1, -1)
+        actions = TransferAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 0)
+    
+    def test_get_transfer_action_list_for_non_attack_phase(self):
+        self.game_state.current_phase = GamePhase.FORTIFY
+        actions = TransferAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 0)
+    
+    def test_apply_transfer_action(self):
+        action = TransferAction(3)
+        new_state = action.apply(self.game_state)
+
+        self.assertEqual(new_state.territory_troops[0], 4)
+        self.assertEqual(new_state.territory_troops[5], 3)
+        self.assertEqual(new_state.current_territory_transfer, (-1, -1))
 
 class TestFortifyAction(TestAction):
     pass

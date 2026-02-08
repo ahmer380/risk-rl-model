@@ -124,7 +124,7 @@ class BattleAction(Action):
 
     @classmethod
     def get_action_list(cls, game_state: GameState, risk_map: RiskMap) -> list[Self]:
-        if game_state.current_phase != GamePhase.ATTACK:
+        if game_state.current_phase != GamePhase.ATTACK or game_state.current_territory_transfer != (-1, -1):
             return []
         
         actions = []
@@ -139,25 +139,24 @@ class BattleAction(Action):
         return actions
 
 class TransferAction(Action):
-    def __init__(self, src_territory_id: int, dst_territory_id: int, troop_count: int):
-        self.src_territory_id = src_territory_id
-        self.dst_territory_id = dst_territory_id
+    def __init__(self, troop_count: int):
         self.troop_count = troop_count
     
     def apply(self, game_state: GameState) -> GameState:
         new_state = game_state.copy()
 
-        new_state.territory_troops[self.dst_territory_id] += self.troop_count
-        new_state.territory_troops[self.src_territory_id] -= self.troop_count
+        new_state.territory_troops[new_state.current_territory_transfer[0]] -= self.troop_count
+        new_state.territory_troops[new_state.current_territory_transfer[1]] += self.troop_count
+        new_state.current_territory_transfer = (-1, -1)
         
         return new_state
 
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
-        if game_state.current_phase != GamePhase.ATTACK:
+        if game_state.current_phase != GamePhase.ATTACK or game_state.current_territory_transfer == (-1, -1):
             return []
         
-        return NotImplementedError
+        return [cls(troop_count) for troop_count in range(1, game_state.territory_troops[game_state.current_territory_transfer[0]])] 
 
 class FortifyAction(Action):
     def __init__(self, src_territory_id: int, dst_territory_id: int, troop_count: int):
