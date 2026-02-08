@@ -85,17 +85,6 @@ class GameState:
                     self.territory_troops[territory_i] += troops_to_add
                     remaining -= troops_to_add
 
-    def advance_phase(self):
-        if self.current_phase == GamePhase.DRAFT:
-            self.current_phase = GamePhase.ATTACK
-        elif self.current_phase == GamePhase.ATTACK:
-            self.current_phase = GamePhase.FORTIFY
-        elif self.current_phase == GamePhase.FORTIFY:
-            self.current_phase = GamePhase.DRAFT
-            self.current_player = (self.current_player + 1) % len(self.active_players)
-            while self.active_players[self.current_player] == False:
-                self.current_player = (self.current_player + 1) % len(self.active_players)
-    
     def is_terminal_state(self) -> bool:
         return sum(self.active_players) == 1 
     

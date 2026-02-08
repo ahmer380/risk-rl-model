@@ -11,7 +11,7 @@ battle_simulator = BlitzBattleSimulator()
 
 class Action(ABC):    
     @abstractmethod
-    def apply(self, game_state: GameState) -> GameState:
+    def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
         """Return a copy of the game state resulting from applying this action to the given game state."""
         pass
 
@@ -25,7 +25,7 @@ class DeployAction(Action):
     def __init__(self, deployments: list[tuple[int, int]]):
         self.deployments = deployments  # List of (territory_id, troop_count)
     
-    def apply(self, game_state: GameState) -> GameState:
+    def apply(self, game_state: GameState, _: RiskMap) -> GameState:
         new_state = game_state.copy()
 
         new_state.deployment_troops = 0
@@ -68,7 +68,7 @@ class TradeAction(Action):
         assert len(territory_cards) == 3, "Must trade exactly 3 cards"
         self.territory_cards = sorted(territory_cards, key=lambda card: card.territory_id)
     
-    def apply(self, game_state: GameState) -> GameState:
+    def apply(self, game_state: GameState, _: RiskMap) -> GameState:
         new_state = game_state.copy()
 
         for card in self.territory_cards:
@@ -101,7 +101,7 @@ class BattleAction(Action):
         self.attacker_territory_id = attacker_territory_id
         self.defender_territory_id = defender_territory_id
     
-    def apply(self, game_state: GameState) -> GameState:
+    def apply(self, game_state: GameState, _: RiskMap) -> GameState:
         new_state = game_state.copy()
 
         remaining_attacker_troops, remaining_defender_troops = battle_simulator.simulate_battle(game_state.territory_troops[self.attacker_territory_id], game_state.territory_troops[self.defender_territory_id])
@@ -148,7 +148,7 @@ class TransferAction(Action):
     def __init__(self, troop_count: int):
         self.troop_count = troop_count
     
-    def apply(self, game_state: GameState) -> GameState:
+    def apply(self, game_state: GameState, _: RiskMap) -> GameState:
         new_state = game_state.copy()
 
         new_state.territory_troops[new_state.current_territory_transfer[0]] -= self.troop_count
@@ -173,14 +173,13 @@ class FortifyAction(Action):
         self.to_territory_id = to_territory_id
         self.troop_count = troop_count
     
-    def apply(self, game_state: GameState) -> GameState:
+    def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
         new_state = game_state.copy()
 
         new_state.territory_troops[self.to_territory_id] += self.troop_count
         new_state.territory_troops[self.from_territory_id] -= self.troop_count
-        new_state.advance_phase() # Always advance phase after fortify
-        
-        return new_state
+
+        return SkipAction().apply(new_state, risk_map) # Skip to end turn after fortifying
 
     @classmethod
     def get_action_list(cls, game_state: GameState, risk_map: RiskMap) -> list[Self]:
@@ -216,10 +215,30 @@ class FortifyAction(Action):
         return actions
 
 class SkipAction(Action):
-    def apply(self, game_state: GameState) -> GameState:
+    def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
         new_state = game_state.copy()
 
-        new_state.advance_phase() # TODO: Disband method, put logic here instead
+        if new_state.current_phase == GamePhase.DRAFT:
+            new_state.current_phase = GamePhase.ATTACK
+        elif new_state.current_phase == GamePhase.ATTACK:
+            new_state.current_phase = GamePhase.FORTIFY
+        elif new_state.current_phase == GamePhase.FORTIFY:
+            # Draw random territory card if player captured a territory this turn
+            if new_state.territory_captured_this_turn: 
+                new_state.player_territory_cards[new_state.current_player].append(TerritoryCard.generate_random_card(len(new_state.territory_owners)))
+                new_state.territory_captured_this_turn = False
+            
+            # Advance to next player's turn
+            new_state.current_phase = GamePhase.DRAFT
+            new_state.current_player = (new_state.current_player + 1) % len(new_state.active_players)
+            while new_state.active_players[new_state.current_player] == False:
+                new_state.current_player = (new_state.current_player + 1) % len(new_state.active_players)
+            
+            # Calculate deployment troops for next player
+            new_state.deployment_troops = max(3, len(new_state.get_player_owned_territory_ids()) // 3)
+            for continent in risk_map.continents.values():
+                if all(new_state.territory_owners[territory.id] == new_state.current_player for territory in continent.territories):
+                    new_state.deployment_troops += continent.bonus
 
         return new_state
     

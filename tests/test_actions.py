@@ -37,7 +37,7 @@ class TestDeployAction(TestAction):
     
     def test_apply_deploy_action(self):
         action = DeployAction([(0, 1), (1, 2)]) # Deploy 1 troop to territory 0 and 2 troops to territory 1
-        new_state = action.apply(self.game_state)
+        new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertEqual(new_state.territory_troops[0], self.game_state.territory_troops[0] + 1)
         self.assertEqual(new_state.territory_troops[1], self.game_state.territory_troops[1] + 2)
@@ -78,7 +78,7 @@ class TestTradeAction(TestAction):
             TerritoryCard(CombatArm.WILD, 0),
         ]
         action = TradeAction([tc[0], tc[1], tc[2]])
-        new_state = action.apply(self.game_state)
+        new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertEqual(len(new_state.player_territory_cards[0]), 1) # 3 cards should be removed
         self.assertIn(tc[3], new_state.player_territory_cards[0])
@@ -121,7 +121,7 @@ class TestBattleAction(TestAction):
         self.game_state.territory_troops[0] = 2
         self.game_state.territory_troops[5] = 10
         action = BattleAction(0, 5) # Attack from Alaska to Kamchatka, where P(Win) = 0
-        new_state = action.apply(self.game_state)
+        new_state = action.apply(self.game_state, self.classic_map)
         
         self.assertEqual(new_state.territory_troops[0], 1) # Attacker should lose all but 1 troop
         self.assertEqual(new_state.territory_owners[5], 1) 
@@ -133,7 +133,7 @@ class TestBattleAction(TestAction):
         self.game_state.territory_troops[0] = 10
         self.game_state.territory_troops[5] = 1
         action = BattleAction(0, 5) # Attack from Alaska to Kamchatka, where P(Win) = 1
-        new_state = action.apply(self.game_state)
+        new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertGreaterEqual(new_state.territory_troops[0], 2)
         self.assertEqual(new_state.territory_troops[5], 0)
@@ -148,7 +148,7 @@ class TestBattleAction(TestAction):
         self.game_state.territory_troops[0] = 10
         self.game_state.territory_troops[5] = 1
         action = BattleAction(0, 5) # Attack from Alaska to Kamchatka, where P(Win) = 1
-        new_state = action.apply(self.game_state)
+        new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertGreaterEqual(new_state.territory_troops[0], 2)
         self.assertEqual(new_state.territory_troops[5], 0)
@@ -188,7 +188,7 @@ class TestTransferAction(TestAction):
     
     def test_apply_transfer_action(self):
         action = TransferAction(3)
-        new_state = action.apply(self.game_state)
+        new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertEqual(new_state.territory_troops[0], 4)
         self.assertEqual(new_state.territory_troops[5], 3)
@@ -219,7 +219,7 @@ class TestFortifyAction(TestAction):
     
     def test_apply_fortify_action(self):
         action = FortifyAction(0, 1, 3)
-        new_state = action.apply(self.game_state)
+        new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertEqual(new_state.territory_troops[0], 2)
         self.assertEqual(new_state.territory_troops[1], 8)
@@ -227,33 +227,51 @@ class TestFortifyAction(TestAction):
         self.assertEqual(new_state.current_player, 1)
 
 class TestSkipAction(TestAction):
+    def setUp(self):
+        super().setUp()
+        self.game_state.current_phase = GamePhase.FORTIFY
+        self.game_state.deployment_troops = 0
+    
+    def test_get_skip_action_list(self):
+        actions = SkipAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 1)
+
     def test_get_skip_action_list_for_initial_state(self):
+        self.game_state.reset_to_initial_state(len(self.classic_map.territories))
         actions = SkipAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0) # Skip action should not be available if there are troops to deploy during the draft phase
     
-    def test_get_skip_action_list_after_troops_deployed(self):
-        actions = SkipAction.get_action_list(DeployAction([(0, 3)]).apply(self.game_state), self.classic_map)
-        self.assertEqual(len(actions), 1)
+    def test_apply_skip_action_in_draft_phase(self):
+        self.game_state.reset_to_initial_state(len(self.classic_map.territories))
+        new_state = SkipAction().apply(DeployAction([(0, 3)]).apply(self.game_state, self.classic_map), self.classic_map)
+        self.assertEqual(new_state.current_phase, GamePhase.ATTACK)
+        self.assertEqual(new_state.current_player, 0)
     
-    def test_apply_skip_action(self):
-        attack_phase_state = SkipAction().apply(DeployAction([(0, 3)]).apply(self.game_state))
-        self.assertEqual(attack_phase_state.current_phase, GamePhase.ATTACK)
-        self.assertEqual(attack_phase_state.current_player, 0)
+    def test_apply_skip_action_in_attack_phase(self):
+        self.game_state.current_phase = GamePhase.ATTACK
+        new_state = SkipAction().apply(self.game_state, self.classic_map)
+        self.assertEqual(new_state.current_phase, GamePhase.FORTIFY)
+        self.assertEqual(new_state.current_player, 0)
+    
+    def test_apply_skip_action_in_fortify_phase(self):
+        self.game_state.territory_captured_this_turn = True
+        self.game_state.territory_owners = [0] * len(self.game_state.territory_owners)
+        self.game_state.territory_owners[9], self.game_state.territory_owners[10], self.game_state.territory_owners[11], self.game_state.territory_owners[12] = 1, 1, 1, 1 # Give the next player owneship to all of South America
+        new_state = SkipAction().apply(self.game_state, self.classic_map)
 
-        fortify_phase_state = SkipAction().apply(attack_phase_state)
-        self.assertEqual(fortify_phase_state.current_phase, GamePhase.FORTIFY)
-        self.assertEqual(fortify_phase_state.current_player, 0)
-
-        next_player_state = SkipAction().apply(fortify_phase_state)
-        self.assertEqual(next_player_state.current_phase, GamePhase.DRAFT)
-        self.assertEqual(next_player_state.current_player, 1)
-
-        fortify_phase_state.active_players = [True, False, False, True] # Simulate players 1 and 2 being eliminated
-        next_player_state = SkipAction().apply(fortify_phase_state)
-        self.assertEqual(next_player_state.current_phase, GamePhase.DRAFT)
-        self.assertEqual(next_player_state.current_player, 3)
-
-        # Assertion for next_player_state.deployment_troops is not checked since RiskEnvironment injects this property, change?
+        self.assertEqual(len(new_state.player_territory_cards[0]), len(self.game_state.player_territory_cards[0]) + 1)
+        self.assertFalse(new_state.territory_captured_this_turn)
+        self.assertEqual(new_state.current_phase, GamePhase.DRAFT)
+        self.assertEqual(new_state.current_player, 1)
+        self.assertEqual(new_state.deployment_troops, 5) # 3 base troops + 2 for owning all of South America
+    
+    def test_apply_skip_action_in_fortify_phase_with_eliminations(self):
+        self.game_state.active_players = [True, False, False, True] # Simulate players 1 and 2 being eliminated
+        new_state = SkipAction().apply(self.game_state, self.classic_map)
+        self.assertEqual(len(new_state.player_territory_cards[0]), len(self.game_state.player_territory_cards[0]))
+        self.assertFalse(new_state.territory_captured_this_turn)
+        self.assertEqual(new_state.current_phase, GamePhase.DRAFT)
+        self.assertEqual(new_state.current_player, 3)
 
 if __name__ == "__main__":
     unittest.main()
