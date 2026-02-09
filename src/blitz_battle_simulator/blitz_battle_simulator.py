@@ -37,6 +37,9 @@ class BlitzBattleSimulator:
         # Otherwise, we are extrapolating from the blitz probability matrix... TODO: Make more accurate!
         scale = max(attacker_troops, defender_troops) / self.dimension
         A, D = max(1, round(attacker_troops / scale)), max(1, round(defender_troops / scale))
+        if A == 1:
+            A, D = 2, min(2 * D, self.dimension) # BlitzBattleSimulator does not support battles with 1 attacking troop
+            
         remaining_attacker_troops, remaining_defender_troops = interpolated_battle(A, D)
 
         if remaining_attacker_troops == 1:
