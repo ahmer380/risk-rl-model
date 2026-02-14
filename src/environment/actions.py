@@ -22,46 +22,26 @@ class Action(ABC):
         pass
 
 class DeployAction(Action):
-    def __init__(self, deployments: list[tuple[int, int]]):
-        self.deployments = deployments  # List of (territory_id, troop_count)
+    def __init__(self, territory_id: int):
+        self.territory_id = territory_id
     
     def apply(self, game_state: GameState, _: RiskMap) -> GameState:
         new_state = game_state.copy()
 
-        new_state.deployment_troops = 0
-        for territory_id, troop_count in self.deployments:
-            new_state.territory_troops[territory_id] += troop_count
+        new_state.territory_troops[self.territory_id] += 1
+        new_state.deployment_troops -= 1
             
         return new_state
 
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
-        if game_state.current_phase != GamePhase.DRAFT:
+        if game_state.current_phase != GamePhase.DRAFT or game_state.deployment_troops == 0:
             return []
         
-        owned_territory_ids = game_state.get_player_owned_territory_ids()
-
-        actions = []
-        def backtrack(i: int, remaining_troops: int, current_deployments: list[tuple[int, int]]):
-            if remaining_troops == 0:
-                actions.append(cls(current_deployments.copy()))
-                return
-            
-            if i == len(owned_territory_ids):
-                return
-            
-            for troop_count in range(1, remaining_troops + 1):
-                current_deployments.append((owned_territory_ids[i], troop_count))
-                backtrack(i + 1, remaining_troops - troop_count, current_deployments)
-                current_deployments.pop()
-
-            backtrack(i + 1, remaining_troops, current_deployments)
-
-        backtrack(0, game_state.deployment_troops, [])
-        return actions
+        return [cls(territory_id) for territory_id in game_state.get_player_owned_territory_ids()]
     
     def __repr__(self):
-        return f"DeployAction(deployments={self.deployments})"
+        return f"DeployAction(territory_id={self.territory_id})"
 
 class TradeAction(Action):
     def __init__(self, territory_cards: list[TerritoryCard]):
@@ -84,7 +64,7 @@ class TradeAction(Action):
 
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
-        if game_state.current_phase != GamePhase.DRAFT:
+        if game_state.current_phase != GamePhase.DRAFT or len(game_state.player_territory_cards[game_state.current_player]) < 3:
             return []
 
         def is_valid_set(cards: tuple[TerritoryCard, TerritoryCard, TerritoryCard]) -> bool:
@@ -229,6 +209,7 @@ class SkipAction(Action):
                 new_state.territory_captured_this_turn = False
             
             # Advance to next player's turn
+            new_state.turn_count += 1
             new_state.current_phase = GamePhase.DRAFT
             new_state.current_player = (new_state.current_player + 1) % len(new_state.active_players)
             while new_state.active_players[new_state.current_player] == False:
@@ -244,7 +225,7 @@ class SkipAction(Action):
     
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
-        if game_state.current_phase == GamePhase.DRAFT and game_state.deployment_troops > 0:
+        if (game_state.current_phase == GamePhase.DRAFT and game_state.deployment_troops > 0) or game_state.current_territory_transfer != (-1, -1):
             return []
         
         return [cls()]

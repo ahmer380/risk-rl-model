@@ -17,18 +17,13 @@ class TestDeployAction(TestAction):
         self.assertEqual(self.game_state.deployment_troops, 3)
 
         actions = DeployAction.get_action_list(self.game_state, self.classic_map)
-        self.assertEqual(len(actions), 286) # Using the Stars and Bars formula: C(n+k-1, k-1) = C(3+11-1, 11-1) = C(13, 10) = 286
+        self.assertEqual(len(actions), 11)
         
         deployments_set = set()
         for action in actions:
-            self.assertNotIn(tuple(sorted(action.deployments)), deployments_set) # ensure no duplicate actions
-            deployments_set.add(tuple(sorted(action.deployments)))
-
-            for deployment in action.deployments:
-                self.assertIn(deployment[0], player_owned_territory_ids) # only deploy to owned territories
-                self.assertGreater(deployment[1], 0) # positive troop count
-
-            self.assertEqual(sum(deployment[1] for deployment in action.deployments), 3) # total deployment must equal available troops
+            self.assertIn(action.territory_id, player_owned_territory_ids)
+            self.assertNotIn(action.territory_id, deployments_set) # ensure no duplicate actions
+            deployments_set.add(action.territory_id)
     
     def test_get_deploy_action_list_for_non_draft_phase(self):
         self.game_state.current_phase = GamePhase.ATTACK
@@ -36,15 +31,14 @@ class TestDeployAction(TestAction):
         self.assertEqual(len(actions), 0)
     
     def test_apply_deploy_action(self):
-        action = DeployAction([(0, 1), (1, 2)]) # Deploy 1 troop to territory 0 and 2 troops to territory 1
+        action = DeployAction(0)
         new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertEqual(new_state.territory_troops[0], self.game_state.territory_troops[0] + 1)
-        self.assertEqual(new_state.territory_troops[1], self.game_state.territory_troops[1] + 2)
-        for i in range(2, len(self.game_state.territory_troops)):
-            self.assertEqual(new_state.territory_troops[i], self.game_state.territory_troops[i]) # other territories should be unchanged
+        for i in range(1, len(self.game_state.territory_troops)):
+            self.assertEqual(new_state.territory_troops[i], self.game_state.territory_troops[i]) # other territories should remain unchanged
         
-        self.assertEqual(new_state.deployment_troops, 0)
+        self.assertEqual(new_state.deployment_troops, 2)
 
 class TestTradeAction(TestAction):
     def test_get_trade_action_list_for_initial_state(self):
@@ -65,7 +59,7 @@ class TestTradeAction(TestAction):
         self.assertTrue(any(action.territory_cards == [tc[3], tc[1], tc[2]] for action in actions)) # 3 different cards
         self.assertTrue(any(action.territory_cards == [tc[3], tc[2], tc[0]] for action in actions)) # 3 cards of the same type
     
-    def get_trade_action_list_for_non_draft_phase(self):
+    def test_get_trade_action_list_for_non_draft_phase(self):
         self.game_state.current_phase = GamePhase.ATTACK
         actions = TradeAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0)
@@ -241,9 +235,15 @@ class TestSkipAction(TestAction):
         actions = SkipAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0) # Skip action should not be available if there are troops to deploy during the draft phase
     
+    def test_get_skip_action_list_after_battle_win(self):
+        self.game_state.current_phase = GamePhase.ATTACK
+        self.game_state.current_territory_transfer = (0, 5)
+        actions = SkipAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 0)
+    
     def test_apply_skip_action_in_draft_phase(self):
         self.game_state.reset_to_initial_state(len(self.classic_map.territories))
-        new_state = SkipAction().apply(DeployAction([(0, 3)]).apply(self.game_state, self.classic_map), self.classic_map)
+        new_state = SkipAction().apply(DeployAction(0).apply(self.game_state, self.classic_map), self.classic_map)
         self.assertEqual(new_state.current_phase, GamePhase.ATTACK)
         self.assertEqual(new_state.current_player, 0)
     
@@ -261,6 +261,7 @@ class TestSkipAction(TestAction):
 
         self.assertEqual(len(new_state.player_territory_cards[0]), len(self.game_state.player_territory_cards[0]) + 1)
         self.assertFalse(new_state.territory_captured_this_turn)
+        self.assertEqual(new_state.turn_count, self.game_state.turn_count + 1)
         self.assertEqual(new_state.current_phase, GamePhase.DRAFT)
         self.assertEqual(new_state.current_player, 1)
         self.assertEqual(new_state.deployment_troops, 5) # 3 base troops + 2 for owning all of South America
@@ -270,6 +271,7 @@ class TestSkipAction(TestAction):
         new_state = SkipAction().apply(self.game_state, self.classic_map)
         self.assertEqual(len(new_state.player_territory_cards[0]), len(self.game_state.player_territory_cards[0]))
         self.assertFalse(new_state.territory_captured_this_turn)
+        self.assertEqual(new_state.turn_count, self.game_state.turn_count + 1)
         self.assertEqual(new_state.current_phase, GamePhase.DRAFT)
         self.assertEqual(new_state.current_player, 3)
 

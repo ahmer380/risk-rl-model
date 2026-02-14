@@ -28,8 +28,9 @@ class TerritoryCard:
     def __repr__(self):
         return f"TerritoryCard(combat_arm={self.combat_arm}, territory_id={self.territory_id})"
 
-"""Map Agnostic Game State Representation for Risk. This is the "environment" that the agent will interact with, and should be decoupled from any specific map representation."""
 class GameState:
+    """Map Agnostic Game State Representation for Risk. This is the "environment" that the agent will interact with, and should be decoupled from any specific map representation."""
+
     active_players: list[bool]
     current_player: int
     current_phase: GamePhase
@@ -40,6 +41,9 @@ class GameState:
     deployment_troops: int # Number of troops available for deployment in the current draft phase
     current_territory_transfer: tuple[int, int] # Most recent (attacker_territory_id, defender_territory_id) for TransferAction
     territory_captured_this_turn: bool # Determines if current player receives a random territory card at the end of the turn
+
+    # attributes only used for telemetry purposes TODO: Move to separate telemetry observer?
+    turn_count: int # Number of total turns that have been played so far
     
     def __init__(self, num_players: int, num_territories: int, reset_to_initial_state: bool = False):
         self.active_players = [True] * num_players
@@ -52,8 +56,9 @@ class GameState:
         self.player_territory_cards = [[] for _ in range(len(self.active_players))]
         self.trade_count = 0
         self.deployment_troops = max(3, math.ceil(num_territories / len(self.active_players)) // 3) # Continent bonuses should NOT materialise in initial state
-        self.territory_captured_this_turn = False
         self.current_territory_transfer = (-1, -1)
+        self.territory_captured_this_turn = False
+        self.turn_count = 0
 
         '''
         Perform random initial assignment of territories and troops, adhering to the following "fairness" rules:
@@ -104,27 +109,25 @@ class GameState:
         new_state.player_territory_cards = [territory_cards.copy() for territory_cards in self.player_territory_cards] # TODO: Check if .copy() is sufficient
         new_state.trade_count = self.trade_count
         new_state.deployment_troops = self.deployment_troops
-        new_state.territory_captured_this_turn = self.territory_captured_this_turn
         new_state.current_territory_transfer = self.current_territory_transfer
+        new_state.territory_captured_this_turn = self.territory_captured_this_turn
+        new_state.turn_count = self.turn_count
 
         return new_state
 
     def __str__(self):
         lines = []
+        lines.append(f"Turn = {self.turn_count}")
+        lines.append(f"Active players = {self.active_players}")
+        lines.append(f"Terminal state = {'Yes' if self.is_terminal_state() else 'No'}")
         lines.append(f"Current player = {self.current_player}")
         lines.append(f"Current phase = {self.current_phase}")
-        
-        lines.append("Territories:")
-        for i in range(len(self.territory_owners)):
-            lines.append(f"{i}: Owner = {self.territory_owners[i]}, troop count = {self.territory_troops[i]}")
-        
-        for player_i in range(len(self.active_players)):
-            lines.append(f"Player {player_i} cards = {self.player_territory_cards[player_i]}")
-        
         lines.append(f"Trade count = {self.trade_count}")
         lines.append(f"Deployment troops = {self.deployment_troops}")
         lines.append(f"Territory captured this turn = {'Yes' if self.territory_captured_this_turn else 'No'}")
         lines.append(f"Current territory transfer = {self.current_territory_transfer}")
-        lines.append(f"Terminal state = {'Yes' if self.is_terminal_state() else 'No'}")
+
+        for player_i in range(len(self.active_players)):
+            lines.append(f"Player {player_i} owns {len(self.get_player_owned_territory_ids(player_i))} territories with {sum(self.territory_troops[i] for i in self.get_player_owned_territory_ids(player_i))} total troops, and cards: {self.player_territory_cards[player_i]}")
         
         return "\n".join(lines)
