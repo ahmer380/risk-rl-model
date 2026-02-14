@@ -46,16 +46,21 @@ class GameState:
     turn_count: int # Number of total turns that have been played so far
     
     def __init__(self, num_players: int, num_territories: int, reset_to_initial_state: bool = False):
-        self.active_players = [True] * num_players
         if reset_to_initial_state:
-            self.reset_to_initial_state(num_territories)
+            self.reset_to_initial_state(num_players, num_territories)
 
-    def reset_to_initial_state(self, num_territories: int):
+    def reset_to_initial_state(self, num_players: int = None, num_territories: int = None):
+        num_players = num_players if num_players is not None else len(self.active_players)
+        num_territories = num_territories if num_territories is not None else len(self.territory_owners)
+        assert num_players is not None, "num_players must be provided if active_players is not already initialized"
+        assert num_territories is not None, "num_territories must be provided if territory_owners is not already initialized"
+
+        self.active_players = [True] * num_players
         self.current_player = 0
         self.current_phase = GamePhase.DRAFT
-        self.player_territory_cards = [[] for _ in range(len(self.active_players))]
+        self.player_territory_cards = [[] for _ in range(num_players)]
         self.trade_count = 0
-        self.deployment_troops = max(3, math.ceil(num_territories / len(self.active_players)) // 3) # Continent bonuses should NOT materialise in initial state
+        self.deployment_troops = max(3, math.ceil(num_territories / num_players) // 3) # Continent bonuses should NOT materialise in initial state
         self.current_territory_transfer = (-1, -1)
         self.territory_captured_this_turn = False
         self.turn_count = 0
@@ -67,7 +72,7 @@ class GameState:
          - If possible, no two bordering territories are owned by the same player (IGNORE FOR NOW)
         '''
         # TODO: A reasonable initial heuristic, but extend to also accept static values 
-        troops_per_player = max(1, round(num_territories / len(self.active_players))) * 4
+        troops_per_player = max(1, round(num_territories / num_players)) * 4
         
         self.territory_owners = [-1] * num_territories
         self.territory_troops = [0] * num_territories
@@ -77,11 +82,11 @@ class GameState:
 
         # Initially assign 1 troop to each territory, and assign ownership in a round-robin manner
         for i, territory_i in enumerate(territory_indices):
-            self.territory_owners[territory_i] = i % len(self.active_players)
+            self.territory_owners[territory_i] = i % num_players
             self.territory_troops[territory_i] = 1
         
         # Distribute remaining troops to each player
-        for player in range(len(self.active_players)):
+        for player in range(num_players):
             player_territories = self.get_player_owned_territory_ids(player)
             remaining = troops_per_player - len(player_territories) # already assigned 1 troop each
             for i, territory_i in enumerate(player_territories):
@@ -118,8 +123,8 @@ class GameState:
     def __str__(self):
         lines = []
         lines.append(f"Turn = {self.turn_count}")
-        lines.append(f"Active players = {self.active_players}")
         lines.append(f"Terminal state = {'Yes' if self.is_terminal_state() else 'No'}")
+        lines.append(f"Active players = {self.active_players}")
         lines.append(f"Current player = {self.current_player}")
         lines.append(f"Current phase = {self.current_phase}")
         lines.append(f"Trade count = {self.trade_count}")

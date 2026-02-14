@@ -21,6 +21,9 @@ class RiskEnvironment:
             return 1.0
         
         return 0.0
+
+    def reset(self):
+        self.current_state.reset_to_initial_state()
     
     def get_action_list(self) -> list[Action]:
         action_types: list[Action] = [DeployAction, TradeAction, BattleAction, TransferAction, FortifyAction, SkipAction]

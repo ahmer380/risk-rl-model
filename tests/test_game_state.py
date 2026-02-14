@@ -5,7 +5,7 @@ from src.environment.game_state import GamePhase, GameState
 class TestGameState(unittest.TestCase):
 	def test_reset_to_initial_state(self):
 		state = GameState(4, 42, True)
-		state.reset_to_initial_state(len(state.territory_owners)) # ensure operation is idempotent
+		state.reset_to_initial_state() # ensure operation is idempotent
 
 		self.assertEqual(state.active_players, [True, True, True, True])
 		self.assertEqual(state.current_player, 0)
