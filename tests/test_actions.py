@@ -45,6 +45,7 @@ class TestDeployAction(TestAction):
             self.assertEqual(new_state.territory_troops[i], self.game_state.territory_troops[i]) # other territories should be unchanged
         
         self.assertEqual(new_state.deployment_troops, 0)
+        self.assertEqual(len(DeployAction.get_action_list(new_state, self.classic_map)), 0) # Cannot ever perform DeployAction consecutively
 
 class TestTradeAction(TestAction):
     def test_get_trade_action_list_for_initial_state(self):
@@ -65,7 +66,7 @@ class TestTradeAction(TestAction):
         self.assertTrue(any(action.territory_cards == [tc[3], tc[1], tc[2]] for action in actions)) # 3 different cards
         self.assertTrue(any(action.territory_cards == [tc[3], tc[2], tc[0]] for action in actions)) # 3 cards of the same type
     
-    def get_trade_action_list_for_non_draft_phase(self):
+    def test_get_trade_action_list_for_non_draft_phase(self):
         self.game_state.current_phase = GamePhase.ATTACK
         actions = TradeAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0)

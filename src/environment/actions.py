@@ -36,7 +36,7 @@ class DeployAction(Action):
 
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
-        if game_state.current_phase != GamePhase.DRAFT:
+        if game_state.current_phase != GamePhase.DRAFT or game_state.deployment_troops == 0:
             return []
         
         owned_territory_ids = game_state.get_player_owned_territory_ids()
@@ -84,7 +84,7 @@ class TradeAction(Action):
 
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
-        if game_state.current_phase != GamePhase.DRAFT:
+        if game_state.current_phase != GamePhase.DRAFT or len(game_state.player_territory_cards[game_state.current_player]) < 3:
             return []
 
         def is_valid_set(cards: tuple[TerritoryCard, TerritoryCard, TerritoryCard]) -> bool:
