@@ -231,7 +231,7 @@ class TestSkipAction(TestAction):
         self.assertEqual(len(actions), 1)
 
     def test_get_skip_action_list_for_initial_state(self):
-        self.game_state.reset_to_initial_state(len(self.classic_map.territories))
+        self.game_state.reset_to_initial_state()
         actions = SkipAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0) # Skip action should not be available if there are troops to deploy during the draft phase
     
@@ -242,7 +242,7 @@ class TestSkipAction(TestAction):
         self.assertEqual(len(actions), 0)
     
     def test_apply_skip_action_in_draft_phase(self):
-        self.game_state.reset_to_initial_state(len(self.classic_map.territories))
+        self.game_state.reset_to_initial_state()
         new_state = SkipAction().apply(DeployAction(0).apply(self.game_state, self.classic_map), self.classic_map)
         self.assertEqual(new_state.current_phase, GamePhase.ATTACK)
         self.assertEqual(new_state.current_player, 0)
