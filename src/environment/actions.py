@@ -57,7 +57,7 @@ class TradeAction(Action):
                 new_state.territory_troops[card.territory_id] += 2 # Bonus troops for trading in a card of a territory you own
         
         bonuses = [4, 6, 8, 10, 12, 15]
-        new_state.deployment_troops += bonuses[new_state.trade_count] if new_state.trade_count < len(bonuses) else new_state.trade_count * 5 - 10
+        new_state.deployment_troops += bonuses[new_state.trade_count] if new_state.trade_count < len(bonuses) else min(new_state.trade_count * 5 - 10, 50)
         new_state.trade_count += 1
 
         return new_state
