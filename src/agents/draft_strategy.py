@@ -24,3 +24,23 @@ class DraftStrategy(Strategy, ABC):
 class RandomDraftStrategy(DraftStrategy):
     def select_action(self, valid_actions: list[Action], _: GameState) -> Action:
         return random.choice(valid_actions)
+
+class MinimumDraftStrategy(DraftStrategy):
+    def select_action(self, valid_actions: list[Action], game_state: GameState) -> Action:
+        """Deploy to the territory with the fewest troops."""
+        deploy_actions, trade_actions, skip_actions = self.segment_action_list(valid_actions)
+
+        if deploy_actions:
+            return min(deploy_actions, key=lambda action: game_state.territory_troops[action.territory_id])
+        else:
+            return random.choice(trade_actions + skip_actions)
+
+class MaximumDraftStrategy(DraftStrategy):
+    def select_action(self, valid_actions: list[Action], game_state: GameState) -> Action:
+        """Deploy to the territory with the most troops."""
+        deploy_actions, trade_actions, skip_actions = self.segment_action_list(valid_actions)
+
+        if deploy_actions:
+            return max(deploy_actions, key=lambda action: game_state.territory_troops[action.territory_id])
+        else:
+            return random.choice(trade_actions + skip_actions)

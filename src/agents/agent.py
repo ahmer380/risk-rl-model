@@ -1,7 +1,7 @@
 from abc import ABC
 
-from src.agents.draft_strategy import DraftStrategy, RandomDraftStrategy
-from src.agents.attack_strategy import AttackStrategy, RandomAttackStrategy
+from src.agents.draft_strategy import DraftStrategy, RandomDraftStrategy, MinimumDraftStrategy
+from src.agents.attack_strategy import AttackStrategy, RandomAttackStrategy, AdvantageAttackStrategy
 from src.agents.fortify_strategy import FortifyStrategy, RandomFortifyStrategy
 
 from src.environment.actions import Action
@@ -27,5 +27,11 @@ class Agent(ABC):
         """Reset any internal state of the agent if necessary for the start of a new episode."""
 
 class RandomAgent(Agent):
+    """Selects a random action"""
     def __init__(self, player_id: int):
         super().__init__(player_id, RandomDraftStrategy(), RandomAttackStrategy(), RandomFortifyStrategy())
+
+class AdvantageAttackAgent(Agent):
+    """Only battles if the odds are in the attacker's favour"""
+    def __init__(self, player_id: int):
+        super().__init__(player_id, MinimumDraftStrategy(), AdvantageAttackStrategy(), RandomFortifyStrategy())

@@ -1,11 +1,11 @@
 
-from src.agents.agent import Agent, RandomAgent
+from src.agents.agent import Agent, RandomAgent, AdvantageAttackAgent
 
 from src.environment.map import RiskMap
 from src.environment.environment import RiskEnvironment
 
 class GameRunner:
-    def __init__(self, risk_map: RiskMap, agents: list[Agent], max_episode_length: int = 10000):
+    def __init__(self, risk_map: RiskMap, agents: list[Agent], max_episode_length: int = 100000):
         assert [agent.player_id for agent in agents] == list(range(len(agents))), "Agent player IDs must be in order and match the number of agents."
         
         self.environment = RiskEnvironment(risk_map, len(agents))
@@ -26,7 +26,7 @@ class GameRunner:
         
         print(f"Episode ended after {episode_length} steps. Final state: \n{self.environment.current_state}")
 
-risk_map = RiskMap.from_json("maps/mini.json")
-agents = [RandomAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3)]
+risk_map = RiskMap.from_json("maps/classic.json")
+agents = [AdvantageAttackAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3)]
 game_runner = GameRunner(risk_map, agents)
 game_runner.run_episode()
