@@ -131,8 +131,10 @@ class GameState:
         lines.append(f"Deployment troops = {self.deployment_troops}")
         lines.append(f"Territory captured this turn = {'Yes' if self.territory_captured_this_turn else 'No'}")
         lines.append(f"Current territory transfer = {self.current_territory_transfer}")
+        lines.append(f"Territory owners = {self.territory_owners}")
+        lines.append(f"Territory troops = {self.territory_troops}")
 
         for player_i in range(len(self.active_players)):
-            lines.append(f"Player {player_i} owns {len(self.get_player_owned_territory_ids(player_i))} territories with {sum(self.territory_troops[i] for i in self.get_player_owned_territory_ids(player_i))} total troops, and cards: {self.player_territory_cards[player_i]}")
+            lines.append(f"Player {player_i} owns {len(self.get_player_owned_territory_ids(player_i))} territories with {sum(self.territory_troops[i] for i in self.get_player_owned_territory_ids(player_i))} total troops, and {len(self.player_territory_cards[player_i])} territory cards.")
         
         return "\n".join(lines)
