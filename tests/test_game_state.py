@@ -15,7 +15,6 @@ class TestGameState(unittest.TestCase):
 		self.assertEqual(state.current_territory_transfer, (-1, -1))
 		self.assertEqual(state.territory_captured_this_turn, False)
 		self.assertEqual(state.deployment_troops, 3) # Territory partition is [11, 11, 10, 10], so each player gets 3 troops for deployment
-		self.assertEqual(state.turn_count, 0)
 		
 		self.assertEqual(len(state.territory_owners), 42)
 		self.assertEqual(len(state.territory_troops), 42)

@@ -208,8 +208,6 @@ class SkipAction(Action):
                 new_state.player_territory_cards[new_state.current_player].append(TerritoryCard.generate_random_card(len(new_state.territory_owners)))
                 new_state.territory_captured_this_turn = False
             
-            # Advance to next player's turn
-            new_state.turn_count += 1
             new_state.current_phase = GamePhase.DRAFT
             new_state.current_player = (new_state.current_player + 1) % len(new_state.active_players)
             while new_state.active_players[new_state.current_player] == False:

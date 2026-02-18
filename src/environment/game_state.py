@@ -41,9 +41,6 @@ class GameState:
     deployment_troops: int # Number of troops available for deployment in the current draft phase
     current_territory_transfer: tuple[int, int] # Most recent (attacker_territory_id, defender_territory_id) for TransferAction
     territory_captured_this_turn: bool # Determines if current player receives a random territory card at the end of the turn
-
-    # attributes only used for telemetry purposes TODO: Move to separate telemetry observer?
-    turn_count: int # Number of total turns that have been played so far
     
     def __init__(self, num_players: int, num_territories: int, reset_to_initial_state: bool = False):
         if reset_to_initial_state:
@@ -63,7 +60,6 @@ class GameState:
         self.deployment_troops = max(3, math.ceil(num_territories / num_players) // 3) # Continent bonuses should NOT materialise in initial state
         self.current_territory_transfer = (-1, -1)
         self.territory_captured_this_turn = False
-        self.turn_count = 0
 
         '''
         Perform random initial assignment of territories and troops, adhering to the following "fairness" rules:
@@ -111,18 +107,16 @@ class GameState:
         new_state.current_phase = self.current_phase
         new_state.territory_owners = self.territory_owners.copy()
         new_state.territory_troops = self.territory_troops.copy()
-        new_state.player_territory_cards = [territory_cards.copy() for territory_cards in self.player_territory_cards] # TODO: Check if .copy() is sufficient
+        new_state.player_territory_cards = [territory_cards.copy() for territory_cards in self.player_territory_cards]
         new_state.trade_count = self.trade_count
         new_state.deployment_troops = self.deployment_troops
         new_state.current_territory_transfer = self.current_territory_transfer
         new_state.territory_captured_this_turn = self.territory_captured_this_turn
-        new_state.turn_count = self.turn_count
 
         return new_state
 
     def __str__(self):
         lines = []
-        lines.append(f"Turn = {self.turn_count}")
         lines.append(f"Terminal state = {'Yes' if self.is_terminal_state() else 'No'}")
         lines.append(f"Active players = {self.active_players}")
         lines.append(f"Current player = {self.current_player}")
