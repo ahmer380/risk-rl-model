@@ -68,7 +68,7 @@ class GameObserver:
     def on_game_end(self, terminal_state: GameState):
         self.terminal_state = terminal_state
     
-    def get_battle_win_rate(self) -> list[float]:
+    def get_battle_win_rates(self) -> list[float]:
         """Calculate the battle win rate for each player based on their recorded attacks and their outcomes."""
         win_rates = []
 
@@ -91,7 +91,7 @@ class GameObserver:
 
         return average_battles_per_turn
     
-    def get_territory_battle_count(self) -> dict[Territory, int]:
+    def get_territory_battle_counts(self) -> dict[Territory, int]:
         """Calculate the number of times each territory was targeted in a battle across all players."""
         territory_battle_count = defaultdict(int)
 
@@ -110,14 +110,14 @@ class GameObserver:
 
         # Add player-specific summaries
         lines.append(f"\n#### Player Statistics ####")
-        win_rates = self.get_battle_win_rate()
+        win_rates = self.get_battle_win_rates()
         average_battles_per_turn = self.get_average_battles_per_turn()
         for player_observer in self.player_observers:
             lines.append(f"Player {player_observer.player_id} initiated {len(player_observer.attacks)} battles with a win rate of {win_rates[player_observer.player_id]:.2f} and an average of {average_battles_per_turn[player_observer.player_id]:.2f} battles per turn.")
         
         # Add map-specific summaries
         lines.append(f"\n#### Map Statistics ####")
-        territory_battle_count = self.get_territory_battle_count()
+        territory_battle_count = self.get_territory_battle_counts()
         most_contested_territories = sorted(territory_battle_count.items(), key=lambda x: x[1], reverse=True)[:5]
         lines.append(f"The top 5 most contested territories were: {', '.join(f'{territory.name} ({count} battles)' for territory, count in most_contested_territories)}.")
 
