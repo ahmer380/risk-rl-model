@@ -5,12 +5,12 @@ from src.environment.game_state import GameState, GamePhase
 from src.environment.map import RiskMap
 
 from src.observers.observer import Observer
-from src.observers.player_data import PlayerData
+from src.observers.player_telemetry import PlayerTelemetry
 
 class OutcomeObserver(Observer):
     """Observer for tracking the outcome of the game, including the winner and final game state."""
-    def __init__(self, risk_map: RiskMap, player_datum: list[PlayerData]):
-        super().__init__(risk_map, player_datum)
+    def __init__(self, risk_map: RiskMap, player_telemetries: list[PlayerTelemetry]):
+        super().__init__(risk_map, player_telemetries)
 
         self.terminal_state: GameState = None
         self.running_time: float = None

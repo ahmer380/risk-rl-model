@@ -2,12 +2,12 @@ from src.environment.actions import DeployAction, TradeAction, BattleAction, Tra
 from src.environment.map import RiskMap
 
 from src.observers.observer import Observer
-from src.observers.player_data import PlayerData
+from src.observers.player_telemetry import PlayerTelemetry
 
 class TemporalObserver(Observer):
     """Observer for tracking performance of game implementation mechanics, intended for debugging use only."""
-    def __init__(self, risk_map: RiskMap, player_datum: list[PlayerData]):
-        super().__init__(risk_map, player_datum)
+    def __init__(self, risk_map: RiskMap, player_telemetries: list[PlayerTelemetry]):
+        super().__init__(risk_map, player_telemetries)
         
         self.action_counts_per_turn = {
             DeployAction.get_name(): [],
@@ -22,4 +22,4 @@ class TemporalObserver(Observer):
         lines = []
         lines.append(f"\n#### Temporal Statistics ####")
 
-# 1. Plot action_count-turn_count graph for each action_type per player (n graphs, 6 lines per graph)
+# TODO 1. Plot action_count-turn_count graph for each action_type per player (n graphs, 6 lines per graph)

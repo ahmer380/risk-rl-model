@@ -5,14 +5,14 @@ from src.environment.game_state import GameState
 from src.environment.map import RiskMap
 
 from src.observers.battle_observer import BattleObserver
-from src.observers.player_data import PlayerData
+from src.observers.player_telemetry import PlayerTelemetry
 
 class TestBattleObserver(unittest.TestCase):
     def setUp(self):
         self.classic_map = RiskMap.from_json("maps/classic.json")
         self.num_players = 2
         self.game_state = GameState(self.num_players, len(self.classic_map.territories), True)
-        self.battle_observer = BattleObserver(self.classic_map, [PlayerData(i) for i in range(self.num_players)])
+        self.battle_observer = BattleObserver(self.classic_map, [PlayerTelemetry(i) for i in range(self.num_players)])
 
         # Statically define territory ownership and troop counts to ensure consistent test results
         self.game_state.territory_owners = [1] * len(self.classic_map.territories)

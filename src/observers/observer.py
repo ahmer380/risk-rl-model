@@ -4,14 +4,14 @@ from src.environment.actions import Action
 from src.environment.game_state import GameState
 from src.environment.map import RiskMap
 
-from src.observers.player_data import PlayerData
+from src.observers.player_telemetry import PlayerTelemetry
 
 class Observer(ABC):
     """Abstract base class for observers to track specific elements of a single Risk game.
     Observers are NOT responsible for influencing the environment state nor agent decisions/rewards."""
-    def __init__(self, risk_map: RiskMap, player_datum: list[PlayerData]):
+    def __init__(self, risk_map: RiskMap, player_telemetries: list[PlayerTelemetry]):
         self.risk_map = risk_map
-        self.player_datum = player_datum
+        self.player_telemetries = player_telemetries
 
     def on_game_start(self):
         """Called at the start of a game episode."""

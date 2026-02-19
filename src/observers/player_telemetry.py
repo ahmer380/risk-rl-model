@@ -21,8 +21,8 @@ class BattleLog:
         self.defender_troops = defender_troops
         self.successful_battle = successful_battle
 
-class PlayerData(): # TODO: Find better name for this class
-    """Entity that stores player data during a game, to be read and written by observers."""
+class PlayerTelemetry:
+    """Records metrics of player behaviour during a game, to be read and written by observers."""
     def __init__(self, player_id: int):
         self.player_id = player_id
 
