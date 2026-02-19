@@ -91,7 +91,13 @@ class GameState:
                     remaining -= troops_to_add
 
     def is_terminal_state(self) -> bool:
-        return sum(self.active_players) == 1 
+        return sum(self.active_players) == 1
+
+    def get_winner(self) -> int:
+        if not self.is_terminal_state():
+            return None
+        
+        return self.active_players.index(True) 
     
     def get_player_owned_territory_ids(self, player_i = None) -> list[int]:
         if player_i is None:

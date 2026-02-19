@@ -112,6 +112,7 @@ class GameObserver:
         lines.append(f"Episode ended after {self.running_time:.2f} seconds, {self.action_count} actions and {self.turn_count} turns.")
 
         lines.append(f"\n#### Final Game State ####")
+        lines.append(f"Winner: Player {self.terminal_state.get_winner()}" if self.terminal_state.is_terminal_state() else "No winner")
         lines.append(f"{self.terminal_state}")
 
         # Add player-specific summaries
