@@ -1,3 +1,5 @@
+import time
+
 from collections import defaultdict
 
 from src.environment.actions import Action, BattleAction
@@ -26,24 +28,27 @@ class BattleLog:
         self.successful_battle = successful_battle
 
 class PlayerObserver:
+    """Observer for tracking individual player actions and outcomes for a single Risk game."""
     def __init__(self, player_id: int):
         self.player_id = player_id
-
         self.attacks: list[BattleLog] = [] # log of battles initiated by the player
         self.defenses: list[BattleLog] = [] # log of battles initiated to the player, and outcome (true = failed defense)
-
-        self.eliminated_turn_count = None # turn number when the player was eliminated or None if still in the game
+        self.eliminated_turn_count: int = None # turn number when the player was eliminated or None if still in the game
 
 class GameObserver:
-    """Observer for tracking game events and player actions in a Risk game, independent of the game logic."""
+    """Observer for tracking events and player actions for a single Risk game.
+    The GameObserver is NOT responsible for influencing the environment state nor agent decisions/rewards."""
     def __init__(self, risk_map: RiskMap, num_players: int):
         self.risk_map = risk_map
         self.player_observers = [PlayerObserver(i) for i in range(num_players)]
-        self.terminal_state: GameState = None # Store the terminal state of the game for post-game analysis
-
         self.action_count = 0
         self.turn_count = 1
+        self.terminal_state: GameState = None # Store the terminal state of the game for post-game analysis
+        self.running_time: float = None # Total time taken for the episode
     
+    def on_game_start(self):
+        self.running_time = time.time()
+
     def on_action_taken(self, action: Action, previous_state: GameState, current_state: GameState):
         self.action_count += 1
 
@@ -67,6 +72,7 @@ class GameObserver:
     
     def on_game_end(self, terminal_state: GameState):
         self.terminal_state = terminal_state
+        self.running_time = time.time() - self.running_time
     
     def get_battle_win_rates(self) -> list[float]:
         """Calculate the battle win rate for each player based on their recorded attacks and their outcomes."""
@@ -103,7 +109,7 @@ class GameObserver:
     
     def summarise(self) -> str:
         lines = []
-        lines.append(f"Episode ended after {self.action_count} actions and {self.turn_count} turns.")
+        lines.append(f"Episode ended after {self.running_time:.2f} seconds, {self.action_count} actions and {self.turn_count} turns.")
 
         lines.append(f"\n#### Final Game State ####")
         lines.append(f"{self.terminal_state}")

@@ -12,6 +12,7 @@ class TestGameObserver(unittest.TestCase):
         self.num_players = 2
         self.game_state = GameState(self.num_players, len(self.classic_map.territories), True)
         self.game_observer = GameObserver(self.classic_map, self.num_players)
+        self.game_observer.on_game_start()
 
 class TestBattleObservations(TestGameObserver):
     def setUp(self):

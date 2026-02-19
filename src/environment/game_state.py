@@ -30,7 +30,6 @@ class TerritoryCard:
 
 class GameState:
     """Map Agnostic Game State Representation for Risk. This is the "environment" that the agent will interact with, and should be decoupled from any specific map representation."""
-
     active_players: list[bool]
     current_player: int
     current_phase: GamePhase

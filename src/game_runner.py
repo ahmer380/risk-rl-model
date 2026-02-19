@@ -21,6 +21,8 @@ class GameRunner:
         self.environment.reset()
         for agent in self.agents:
             agent.reset()
+        if self.game_observer:
+            self.game_observer.on_game_start()
 
         is_terminal_state = False
         episode_length = 0
