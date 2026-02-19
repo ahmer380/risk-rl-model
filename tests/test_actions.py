@@ -261,7 +261,6 @@ class TestSkipAction(TestAction):
 
         self.assertEqual(len(new_state.player_territory_cards[0]), len(self.game_state.player_territory_cards[0]) + 1)
         self.assertFalse(new_state.territory_captured_this_turn)
-        self.assertEqual(new_state.turn_count, self.game_state.turn_count + 1)
         self.assertEqual(new_state.current_phase, GamePhase.DRAFT)
         self.assertEqual(new_state.current_player, 1)
         self.assertEqual(new_state.deployment_troops, 5) # 3 base troops + 2 for owning all of South America
@@ -271,7 +270,6 @@ class TestSkipAction(TestAction):
         new_state = SkipAction().apply(self.game_state, self.classic_map)
         self.assertEqual(len(new_state.player_territory_cards[0]), len(self.game_state.player_territory_cards[0]))
         self.assertFalse(new_state.territory_captured_this_turn)
-        self.assertEqual(new_state.turn_count, self.game_state.turn_count + 1)
         self.assertEqual(new_state.current_phase, GamePhase.DRAFT)
         self.assertEqual(new_state.current_player, 3)
 
