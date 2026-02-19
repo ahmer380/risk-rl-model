@@ -21,6 +21,11 @@ class Action(ABC):
         """Return a list of all valid actions of this type that can be applied to the given game state."""
         pass
 
+    @classmethod
+    @abstractmethod
+    def get_name(cls) -> str:
+        """Return a string name for this action type."""
+
 class DeployAction(Action):
     def __init__(self, territory_id: int):
         self.territory_id = territory_id
@@ -39,6 +44,10 @@ class DeployAction(Action):
             return []
         
         return [cls(territory_id) for territory_id in game_state.get_player_owned_territory_ids()]
+
+    @classmethod
+    def get_name(cls) -> str:
+        return "DeployAction"
     
     def __repr__(self):
         return f"DeployAction(territory_id={self.territory_id})"
@@ -72,6 +81,10 @@ class TradeAction(Action):
             return CombatArm.WILD in combat_arms or len(combat_arms) == 1 or len(combat_arms) == 3
 
         return [cls(list(cards)) for cards in combinations(game_state.player_territory_cards[game_state.current_player], 3) if is_valid_set(cards)]
+    
+    @classmethod
+    def get_name(cls) -> str:
+        return "TradeAction"
     
     def __repr__(self):
         return f"TradeAction(territory_cards={self.territory_cards})"
@@ -121,6 +134,10 @@ class BattleAction(Action):
         
         return actions
     
+    @classmethod
+    def get_name(cls) -> str:
+        return "BattleAction"
+    
     def __repr__(self):
         return f"BattleAction(attacker_territory_id={self.attacker_territory_id}, defender_territory_id={self.defender_territory_id})"
 
@@ -143,6 +160,10 @@ class TransferAction(Action):
             return []
         
         return [cls(troop_count) for troop_count in range(1, game_state.territory_troops[game_state.current_territory_transfer[0]])]
+    
+    @classmethod
+    def get_name(cls) -> str:
+        return "TransferAction"
     
     def __repr__(self):
         return f"TransferAction(troop_count={self.troop_count})"
@@ -193,6 +214,13 @@ class FortifyAction(Action):
             visited |= connected_territories
 
         return actions
+    
+    @classmethod
+    def get_name(cls) -> str:
+        return "FortifyAction"
+    
+    def __repr__(self):
+        return f"FortifyAction(from_territory_id={self.from_territory_id}, to_territory_id={self.to_territory_id}, troop_count={self.troop_count})"
 
 class SkipAction(Action):
     def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
@@ -227,6 +255,10 @@ class SkipAction(Action):
             return []
         
         return [cls()]
+    
+    @classmethod
+    def get_name(cls) -> str:
+        return "SkipAction"
     
     def __repr__(self):
         return "SkipAction()"
