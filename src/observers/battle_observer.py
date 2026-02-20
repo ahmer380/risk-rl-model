@@ -36,9 +36,10 @@ class BattleObserver(Observer):
             self.player_telemetries[battle_log.defender_player_id].defenses.append(battle_log)
     
     def summarise(self) -> str:
-        lines = ["#### Player Battle Statistics ####"]
+        lines = ["#### Battle Observations ####"]
 
         # Add player-specific battle summaries
+        lines.append(f"\n---- Player Battle Statistics ----")
         win_rates = self.get_battle_win_rates()
         average_battles_per_turn = self.get_average_battles_per_turn()
         player_headers = [
@@ -60,7 +61,7 @@ class BattleObserver(Observer):
         lines.append(tabulate(player_rows, headers=player_headers, tablefmt="grid", colalign=["center"]*len(player_headers)))
         
         # Add map-specific battle summaries
-        lines.append(f"\n#### Map Battle Statistics ####")
+        lines.append(f"\n---- Map Battle Statistics ----")
         territory_battle_count = self.get_territory_battle_counts()
         map_headers = [
             "Territory",
