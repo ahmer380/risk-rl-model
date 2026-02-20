@@ -32,11 +32,11 @@ class PlayerTelemetry:
         self.eliminated_turn_count: int = None # turn number when the player was eliminated or None if still in the game
 
         # attributes to be used by the TemporalObserver
-        self.action_counts_per_turn = {
+        self.action_counts_per_turn: dict[str, list[int]] = {
             DeployAction.get_name(): [],
             TradeAction.get_name(): [],
             BattleAction.get_name(): [],
             TransferAction.get_name(): [],
             FortifyAction.get_name(): [],
             SkipAction.get_name(): []
-        } #key=action_type, value=list of action counts indexed per turn
+        } #key=action_type, value=list of (maximum) action counts indexed per turn

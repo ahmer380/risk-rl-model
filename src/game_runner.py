@@ -35,7 +35,7 @@ class GameRunner:
         while not is_terminal_state and episode_length < self.max_episode_length:
             previous_state = self.environment.current_state
             action_list = self.environment.get_action_list()
-            self.observer_manager.notify_action_list_generated(action_list, previous_state)
+            self.observer_manager.notify_action_list_generated(action_list)
 
             selected_action = self.agents[previous_state.current_player].select_action(action_list, previous_state)
             current_state, _, is_terminal_state = self.environment.step(selected_action)
@@ -47,7 +47,7 @@ class GameRunner:
 
 risk_map = RiskMap.from_json("maps/classic.json")
 agents = [AdvantageAttackAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3)]
-observer_manager = ObserverManager(risk_map, len(agents), enable_outcome_observer=True, enable_battle_observer=True)
+observer_manager = ObserverManager(risk_map, len(agents), enable_outcome_observer=True, enable_battle_observer=True, enable_temporal_observer=True)
 game_runner = GameRunner(risk_map, agents, observer_manager)
 game_runner.run_episode()
 observer_manager.summarise()

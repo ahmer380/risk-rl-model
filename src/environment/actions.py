@@ -314,6 +314,22 @@ class ActionList:
         i -= len(self.fortify_actions)
 
         return self.skip_actions[i]
+    
+    def get_action_type_list_by_name(self, action_name: str) -> list[Action]:
+        if action_name == DeployAction.get_name():
+            return self.deploy_actions
+        elif action_name == TradeAction.get_name():
+            return self.trade_actions
+        elif action_name == BattleAction.get_name():
+            return self.battle_actions
+        elif action_name == TransferAction.get_name():
+            return self.transfer_actions
+        elif action_name == FortifyAction.get_name():
+            return self.fortify_actions
+        elif action_name == SkipAction.get_name():
+            return self.skip_actions
+        else:
+            raise ValueError(f"Invalid action name: {action_name}")
         
     def size(self) -> int:
         return len(self.deploy_actions) + len(self.trade_actions) + len(self.battle_actions) + len(self.transfer_actions) + len(self.fortify_actions) + len(self.skip_actions)
