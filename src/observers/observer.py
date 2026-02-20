@@ -16,8 +16,8 @@ class Observer(ABC):
     def on_game_start(self):
         """Called at the start of a game episode."""
     
-    def on_action_list_generated(self, action_list: ActionList, current_state: GameState):
-        """Called after the environment generates the list of valid actions for the current state"""
+    def on_action_list_generated(self, action_list: ActionList):
+        """Called after the environment generates a list of valid actions"""
 
     def on_action_taken(self, action: Action, previous_state: GameState, current_state: GameState):
         """Called after an action is taken, such that current_state = action.apply(previous_state)."""

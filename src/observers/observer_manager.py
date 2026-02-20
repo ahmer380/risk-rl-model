@@ -3,11 +3,11 @@ from src.environment.actions import Action, ActionList
 from src.environment.game_state import GameState
 from src.environment.map import RiskMap
 
+from src.observers.action_count_observer import ActionCountObserver
 from src.observers.battle_observer import BattleObserver
 from src.observers.observer import Observer
 from src.observers.outcome_observer import OutcomeObserver
 from src.observers.player_telemetry import PlayerTelemetry
-from src.observers.temporal_observer import TemporalObserver
 
 class ObserverManager():
     """Manages multiple observers and notifies them of game events."""
@@ -27,15 +27,15 @@ class ObserverManager():
         if enable_battle_observer:
             self.observers.append(BattleObserver(risk_map, player_telemetries))
         if enable_temporal_observer:
-            self.observers.append(TemporalObserver(risk_map, player_telemetries))
+            self.observers.append(ActionCountObserver(risk_map, player_telemetries))
     
     def notify_game_start(self):
         for observer in self.observers:
             observer.on_game_start()
     
-    def notify_action_list_generated(self, action_list: ActionList, current_state: GameState):
+    def notify_action_list_generated(self, action_list: ActionList):
         for observer in self.observers:
-            observer.on_action_list_generated(action_list, current_state)
+            observer.on_action_list_generated(action_list)
     
     def notify_action_taken(self, action: Action, previous_state: GameState, current_state: GameState):
         for observer in self.observers:

@@ -31,7 +31,7 @@ class OutcomeObserver(Observer):
         self.terminal_state = terminal_state
     
     def summarise(self) -> str:
-        lines = ["#### Game Outcome ####"]
+        lines = ["#### Outcome Observations ####"]
         lines.append(f"Episode ended after {self.running_time:.2f} seconds, {self.action_count} actions and {self.turn_count} turns.")
         lines.append(f"Winner: Player {self.terminal_state.get_winner()}" if self.terminal_state.is_terminal_state() else "No winner")
         lines.append(f"{self.terminal_state}")
