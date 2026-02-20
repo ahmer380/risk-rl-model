@@ -1,3 +1,5 @@
+from tabulate import tabulate
+
 from collections import defaultdict
 
 from src.environment.actions import Action, BattleAction
@@ -39,14 +41,40 @@ class BattleObserver(Observer):
         # Add player-specific battle summaries
         win_rates = self.get_battle_win_rates()
         average_battles_per_turn = self.get_average_battles_per_turn()
+        player_headers = [
+            "Player",
+            "Battles\ninitiated",
+            "Battles\nwon",
+            "Win\nrate (%)",
+            "Average\nbattles\nper turn"
+        ]
+        player_rows = []
         for player_telemetry in self.player_telemetries:
-            lines.append(f"Player {player_telemetry.player_id} initiated {len(player_telemetry.attacks)} battles with a win rate of {win_rates[player_telemetry.player_id]:.2f} and an average of {average_battles_per_turn[player_telemetry.player_id]:.2f} battles per turn.")
+            player_row = []
+            player_row.append(f"Player {player_telemetry.player_id}")
+            player_row.append(len(player_telemetry.attacks))
+            player_row.append(sum(1 for attack in player_telemetry.attacks if attack.successful_battle))
+            player_row.append(win_rates[player_telemetry.player_id] * 100)
+            player_row.append(average_battles_per_turn[player_telemetry.player_id])
+            player_rows.append(player_row)
+        lines.append(tabulate(player_rows, headers=player_headers, tablefmt="grid", colalign=["center"]*len(player_headers)))
         
         # Add map-specific battle summaries
         lines.append(f"\n#### Map Battle Statistics ####")
         territory_battle_count = self.get_territory_battle_counts()
-        most_contested_territories = sorted(territory_battle_count.items(), key=lambda x: x[1], reverse=True)[:5]
-        lines.append(f"The top 5 most contested territories were: {', '.join(f'{territory.name} ({count} battles)' for territory, count in most_contested_territories)}.")
+        map_headers = [
+            "Territory",
+            "Battles\nas\nattacker",
+            "Battles\nas\ndefender"
+        ]
+        map_rows = []
+        for territory, (attacks, defenses) in sorted(territory_battle_count.items(), key=lambda x: (x[1][0], x[0].name), reverse=True):
+            map_row = []
+            map_row.append(territory.name)
+            map_row.append(attacks)
+            map_row.append(defenses)
+            map_rows.append(map_row)
+        lines.append(tabulate(map_rows, headers=map_headers, tablefmt="grid", colalign=["center"]*len(map_headers)))
 
         return "\n".join(lines)
     
@@ -73,12 +101,13 @@ class BattleObserver(Observer):
 
         return average_battles_per_turn
     
-    def get_territory_battle_counts(self) -> dict[Territory, int]:
-        """Calculate the number of times each territory was targeted in a battle across all players."""
-        territory_battle_count = defaultdict(int)
+    def get_territory_battle_counts(self) -> dict[Territory, list[int]]:
+        """Calculate the number of times each territory attacked, or was attacked in a battle across all players."""
+        territory_battle_counts: dict[Territory, list[int]] = defaultdict(lambda: [0, 0])  # [attacks, defenses]
 
         for player_telemetry in self.player_telemetries:
             for battle_log in player_telemetry.attacks:
-                territory_battle_count[self.risk_map.territories[battle_log.defender_territory_id]] += 1
+                territory_battle_counts[self.risk_map.territories[battle_log.attacker_territory_id]][0] += 1
+                territory_battle_counts[self.risk_map.territories[battle_log.defender_territory_id]][1] += 1
 
-        return territory_battle_count
+        return territory_battle_counts

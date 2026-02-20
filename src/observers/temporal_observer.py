@@ -79,5 +79,3 @@ class TemporalObserver(Observer):
         lines.append(tabulate(rows, headers=headers, tablefmt="grid", colalign=["center"]*len(headers)))
 
         return "\n".join(lines)
-
-# TODO 1. Plot action_count-turn_count graph for each action_type per player (n graphs, 6 lines per graph)
