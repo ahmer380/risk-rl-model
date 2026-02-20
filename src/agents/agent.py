@@ -4,7 +4,7 @@ from src.agents.draft_strategy import DraftStrategy, RandomDraftStrategy, Minimu
 from src.agents.attack_strategy import AttackStrategy, RandomAttackStrategy, AdvantageAttackStrategy
 from src.agents.fortify_strategy import FortifyStrategy, RandomFortifyStrategy
 
-from src.environment.actions import Action
+from src.environment.actions import Action, ActionList
 from src.environment.game_state import GameState, GamePhase
 
 class Agent(ABC):
@@ -14,7 +14,7 @@ class Agent(ABC):
         self.attack_strategy = attack_strategy
         self.fortify_strategy = fortify_strategy
 
-    def select_action(self, valid_actions: list[Action], game_state: GameState) -> Action:
+    def select_action(self, valid_actions: ActionList, game_state: GameState) -> Action:
         """Select an action from the list of valid actions based on the current game state and the agent's policy."""
         if game_state.current_phase == GamePhase.DRAFT:
             return self.draft_strategy.select_action(valid_actions, game_state)
