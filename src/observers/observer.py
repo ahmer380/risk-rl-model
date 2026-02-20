@@ -1,6 +1,6 @@
 from abc import ABC
 
-from src.environment.actions import Action
+from src.environment.actions import Action, ActionList
 from src.environment.game_state import GameState
 from src.environment.map import RiskMap
 
@@ -16,7 +16,7 @@ class Observer(ABC):
     def on_game_start(self):
         """Called at the start of a game episode."""
     
-    def on_action_list_generated(self, action_list: list[Action]):
+    def on_action_list_generated(self, action_list: ActionList, current_state: GameState):
         """Called after the environment generates the list of valid actions for the current state"""
 
     def on_action_taken(self, action: Action, previous_state: GameState, current_state: GameState):

@@ -34,9 +34,11 @@ class GameRunner:
 
         while not is_terminal_state and episode_length < self.max_episode_length:
             previous_state = self.environment.current_state
-            selected_action = self.agents[previous_state.current_player].select_action(self.environment.get_action_list(), previous_state)
-            current_state, _, is_terminal_state = self.environment.step(selected_action)
+            action_list = self.environment.get_action_list()
+            self.observer_manager.notify_action_list_generated(action_list, previous_state)
 
+            selected_action = self.agents[previous_state.current_player].select_action(action_list, previous_state)
+            current_state, _, is_terminal_state = self.environment.step(selected_action)
             self.observer_manager.notify_action_taken(selected_action, previous_state, current_state)
 
             episode_length += 1

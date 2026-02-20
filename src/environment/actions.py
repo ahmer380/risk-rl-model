@@ -1,3 +1,5 @@
+import random
+
 from abc import ABC, abstractmethod
 from typing import Self
 from itertools import combinations
@@ -262,3 +264,60 @@ class SkipAction(Action):
     
     def __repr__(self):
         return "SkipAction()"
+
+class ActionList:
+    """Store a segmented list of all available actions for a given game state."""
+    def __init__(
+        self, 
+        deploy_actions: list[DeployAction],
+        trade_actions: list[TradeAction],
+        battle_actions: list[BattleAction],
+        transfer_actions: list[TransferAction],
+        fortify_actions: list[FortifyAction],
+        skip_actions: list[SkipAction]
+    ):
+        self.deploy_actions = deploy_actions
+        self.trade_actions = trade_actions
+        self.battle_actions = battle_actions
+        self.transfer_actions = transfer_actions
+        self.fortify_actions = fortify_actions
+        self.skip_actions = skip_actions
+    
+    @classmethod
+    def get_action_list(cls, game_state: GameState, risk_map: RiskMap) -> Self:
+        return cls(
+            deploy_actions=DeployAction.get_action_list(game_state, risk_map),
+            trade_actions=TradeAction.get_action_list(game_state, risk_map),
+            battle_actions=BattleAction.get_action_list(game_state, risk_map),
+            transfer_actions=TransferAction.get_action_list(game_state, risk_map),
+            fortify_actions=FortifyAction.get_action_list(game_state, risk_map),
+            skip_actions=SkipAction.get_action_list(game_state, risk_map)
+        )
+    
+    def get_random_action(self) -> Action: # Verbose implementation, but in O(1) time
+        i = random.randint(0, self.size() - 1)
+
+        if i < len(self.deploy_actions):
+            return self.deploy_actions[i]
+        i -= len(self.deploy_actions)
+        if i < len(self.trade_actions):
+            return self.trade_actions[i]
+        i -= len(self.trade_actions)
+        if i < len(self.battle_actions):
+            return self.battle_actions[i]
+        i -= len(self.battle_actions)
+        if i < len(self.transfer_actions):
+            return self.transfer_actions[i]
+        i -= len(self.transfer_actions)
+        if i < len(self.fortify_actions):
+            return self.fortify_actions[i]
+        i -= len(self.fortify_actions)
+
+        return self.skip_actions[i]
+        
+    def size(self) -> int:
+        return len(self.deploy_actions) + len(self.trade_actions) + len(self.battle_actions) + len(self.transfer_actions) + len(self.fortify_actions) + len(self.skip_actions)
+    
+    def flatten(self) -> list[Action]:
+        return self.deploy_actions + self.trade_actions + self.battle_actions + self.transfer_actions + self.fortify_actions + self.skip_actions
+    

@@ -1,8 +1,8 @@
 from typing import Tuple
 
+from src.environment.actions import Action, ActionList
 from src.environment.game_state import GameState
 from src.environment.map import RiskMap
-from src.environment.actions import Action, DeployAction, TradeAction, BattleAction, TransferAction, FortifyAction, SkipAction
 
 class RiskEnvironment:
     def __init__(self, risk_map: RiskMap, num_players: int):
@@ -25,6 +25,5 @@ class RiskEnvironment:
     def reset(self):
         self.current_state.reset_to_initial_state()
     
-    def get_action_list(self) -> list[Action]:
-        action_types: list[Action] = [DeployAction, TradeAction, BattleAction, TransferAction, FortifyAction, SkipAction]
-        return [action for action_type in action_types for action in action_type.get_action_list(self.current_state, self.map)]
+    def get_action_list(self) -> ActionList:
+        return ActionList.get_action_list(self.current_state, self.map)

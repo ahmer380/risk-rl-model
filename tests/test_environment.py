@@ -1,9 +1,8 @@
 import unittest
 
-import random
-
-from src.environment.map import RiskMap
 from src.environment.environment import RiskEnvironment
+from src.environment.map import RiskMap
+
 
 class TestEnvironment(unittest.TestCase):
     def setUp(self):
@@ -13,7 +12,7 @@ class TestEnvironment(unittest.TestCase):
 
     def test_random_game_simulation(self):
         for _ in range(10000):
-            _, _, is_terminal = self.env.step(random.choice(self.env.get_action_list()))
+            _, _, is_terminal = self.env.step(self.env.get_action_list().get_random_action())
             if is_terminal:
                 break
 

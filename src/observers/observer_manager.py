@@ -1,5 +1,5 @@
 
-from src.environment.actions import Action
+from src.environment.actions import Action, ActionList
 from src.environment.game_state import GameState
 from src.environment.map import RiskMap
 
@@ -33,9 +33,9 @@ class ObserverManager():
         for observer in self.observers:
             observer.on_game_start()
     
-    def notify_action_list_generated(self, action_list: list[Action]):
+    def notify_action_list_generated(self, action_list: ActionList, current_state: GameState):
         for observer in self.observers:
-            observer.on_action_list_generated(action_list)
+            observer.on_action_list_generated(action_list, current_state)
     
     def notify_action_taken(self, action: Action, previous_state: GameState, current_state: GameState):
         for observer in self.observers:
