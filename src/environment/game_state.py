@@ -39,6 +39,7 @@ class GameState:
     trade_count: int # Number of trades that have been made so far (to determine trade-in values)
     deployment_troops: int # Number of troops available for deployment in the current draft phase
     current_territory_transfer: tuple[int, int] # Most recent (attacker_territory_id, defender_territory_id) for TransferAction
+    current_fortify_route: tuple[int, int] # Most recent (from_territory_id, to_territory_id) for FortifyAmountAction, declared by FortifyRouteAction
     territory_captured_this_turn: bool # Determines if current player receives a random territory card at the end of the turn
     
     def __init__(self, num_players: int, num_territories: int, reset_to_initial_state: bool = False):
@@ -58,6 +59,7 @@ class GameState:
         self.trade_count = 0
         self.deployment_troops = max(3, math.ceil(num_territories / num_players) // 3) # Continent bonuses should NOT materialise in initial state
         self.current_territory_transfer = (-1, -1)
+        self.current_fortify_route = (-1, -1)
         self.territory_captured_this_turn = False
 
         '''
@@ -116,6 +118,7 @@ class GameState:
         new_state.trade_count = self.trade_count
         new_state.deployment_troops = self.deployment_troops
         new_state.current_territory_transfer = self.current_territory_transfer
+        new_state.current_fortify_route = self.current_fortify_route
         new_state.territory_captured_this_turn = self.territory_captured_this_turn
 
         return new_state
@@ -130,6 +133,7 @@ class GameState:
         lines.append(f"Deployment troops = {self.deployment_troops}")
         lines.append(f"Territory captured this turn = {'Yes' if self.territory_captured_this_turn else 'No'}")
         lines.append(f"Current territory transfer = {self.current_territory_transfer}")
+        lines.append(f"Current fortify route = {self.current_fortify_route}")
         lines.append(f"Territory owners = {self.territory_owners}")
         lines.append(f"Territory troops = {self.territory_troops}")
 

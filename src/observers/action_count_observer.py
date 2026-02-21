@@ -1,6 +1,6 @@
 from tabulate import tabulate
 
-from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleAction, TransferAction, FortifyAction, SkipAction
+from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
 from src.environment.game_state import GameState, GamePhase
 from src.environment.map import RiskMap
 
@@ -17,7 +17,8 @@ class ActionCountObserver(Observer):
             TradeAction.get_name(): [0, 0],
             BattleAction.get_name(): [0, 0],
             TransferAction.get_name(): [0, 0],
-            FortifyAction.get_name(): [0, 0],
+            FortifyRouteAction.get_name(): [0, 0],
+            FortifyAmountAction.get_name(): [0, 0],
             SkipAction.get_name(): [0, 0]
         } # key=action_type, value=((maximum) no.action_types generated, no.action_types executed) for the current turn
     
@@ -58,8 +59,10 @@ class ActionCountObserver(Observer):
             "Average\nbattle\nactions",
             "Total\ntransfer\nactions",
             "Average\ntransfer\nactions",
-            "Total\nfortify\nactions",
-            "Average\nfortify\nactions",
+            "Total\nfortify\nroute\nactions",
+            "Average\nfortify\nroute\nactions",
+            "Total\nfortify\namount\nactions",
+            "Average\nfortify\namount\nactions",
             "Total\nskip\nactions",
             "Average\nskip\nactions"
         ]
@@ -71,18 +74,9 @@ class ActionCountObserver(Observer):
             row.append(total_turns)
             row.append(sum(sum(counts[0]) for counts in player_telemetry.action_counts.values()))
             row.append(sum(sum(counts[0]) for counts in player_telemetry.action_counts.values()) / total_turns if total_turns > 0 else 0)
-            row.append(sum(player_telemetry.action_counts[DeployAction.get_name()][0]))
-            row.append(sum(player_telemetry.action_counts[DeployAction.get_name()][0]) / total_turns if total_turns > 0 else 0)
-            row.append(sum(player_telemetry.action_counts[TradeAction.get_name()][0]))
-            row.append(sum(player_telemetry.action_counts[TradeAction.get_name()][0]) / total_turns if total_turns > 0 else 0)
-            row.append(sum(player_telemetry.action_counts[BattleAction.get_name()][0]))
-            row.append(sum(player_telemetry.action_counts[BattleAction.get_name()][0]) / total_turns if total_turns > 0 else 0)
-            row.append(sum(player_telemetry.action_counts[TransferAction.get_name()][0]))
-            row.append(sum(player_telemetry.action_counts[TransferAction.get_name()][0]) / total_turns if total_turns > 0 else 0)
-            row.append(sum(player_telemetry.action_counts[FortifyAction.get_name()][0]))
-            row.append(sum(player_telemetry.action_counts[FortifyAction.get_name()][0]) / total_turns if total_turns > 0 else 0)
-            row.append(sum(player_telemetry.action_counts[SkipAction.get_name()][0]))
-            row.append(sum(player_telemetry.action_counts[SkipAction.get_name()][0]) / total_turns if total_turns > 0 else 0)
+            for action_counts in player_telemetry.action_counts.values():
+                row.append(sum(action_counts[0]))
+                row.append(sum(action_counts[0]) / total_turns if total_turns > 0 else 0)
             rows.append(row)
         lines.append(tabulate(rows, headers=headers, tablefmt="grid", colalign=["center"]*len(headers)))
 
@@ -96,18 +90,9 @@ class ActionCountObserver(Observer):
             row.append(total_turns)
             row.append(sum(sum(counts[1]) for counts in player_telemetry.action_counts.values()))
             row.append(sum(sum(counts[1]) for counts in player_telemetry.action_counts.values()) / total_turns if total_turns > 0 else 0)
-            row.append(sum(player_telemetry.action_counts[DeployAction.get_name()][1]))
-            row.append(sum(player_telemetry.action_counts[DeployAction.get_name()][1]) / total_turns if total_turns > 0 else 0)
-            row.append(sum(player_telemetry.action_counts[TradeAction.get_name()][1]))
-            row.append(sum(player_telemetry.action_counts[TradeAction.get_name()][1]) / total_turns if total_turns > 0 else 0)
-            row.append(sum(player_telemetry.action_counts[BattleAction.get_name()][1]))
-            row.append(sum(player_telemetry.action_counts[BattleAction.get_name()][1]) / total_turns if total_turns > 0 else 0)
-            row.append(sum(player_telemetry.action_counts[TransferAction.get_name()][1]))
-            row.append(sum(player_telemetry.action_counts[TransferAction.get_name()][1]) / total_turns if total_turns > 0 else 0)
-            row.append(sum(player_telemetry.action_counts[FortifyAction.get_name()][1]))
-            row.append(sum(player_telemetry.action_counts[FortifyAction.get_name()][1]) / total_turns if total_turns > 0 else 0)
-            row.append(sum(player_telemetry.action_counts[SkipAction.get_name()][1]))
-            row.append(sum(player_telemetry.action_counts[SkipAction.get_name()][1]) / total_turns if total_turns > 0 else 0)
+            for action_counts in player_telemetry.action_counts.values():
+                row.append(sum(action_counts[1]))
+                row.append(sum(action_counts[1]) / total_turns if total_turns > 0 else 0)
             rows.append(row)
         lines.append(tabulate(rows, headers=headers, tablefmt="grid", colalign=["center"]*len(headers)))
         

@@ -53,11 +53,13 @@ class TestBattleObserver(unittest.TestCase):
     
     def test_territory_battle_counts(self):
         territory_battle_counts = self.battle_observer.get_territory_battle_counts()
-        self.assertEqual(territory_battle_counts[self.classic_map.territories[1]], 1)
-        self.assertEqual(territory_battle_counts[self.classic_map.territories[6]], 1)
-        self.assertEqual(territory_battle_counts[self.classic_map.territories[7]], 1)
-        self.assertEqual(territory_battle_counts[self.classic_map.territories[4]], 1)
-        self.assertEqual(territory_battle_counts[self.classic_map.territories[40]], 1)
+        self.assertEqual(territory_battle_counts[self.classic_map.territories[0]], [1, 0])
+        self.assertEqual(territory_battle_counts[self.classic_map.territories[1]], [1, 1])
+        self.assertEqual(territory_battle_counts[self.classic_map.territories[6]], [1, 1])
+        self.assertEqual(territory_battle_counts[self.classic_map.territories[7]], [1, 1])
+        self.assertEqual(territory_battle_counts[self.classic_map.territories[4]], [0, 1])
+        self.assertEqual(territory_battle_counts[self.classic_map.territories[39]], [1, 0])
+        self.assertEqual(territory_battle_counts[self.classic_map.territories[40]], [0, 1])
 
 if __name__ == "__main__":
     unittest.main()

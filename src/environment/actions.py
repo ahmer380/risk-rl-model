@@ -170,23 +170,21 @@ class TransferAction(Action):
     def __repr__(self):
         return f"TransferAction(troop_count={self.troop_count})"
 
-class FortifyAction(Action):
-    def __init__(self, from_territory_id: int, to_territory_id: int, troop_count: int):
+class FortifyRouteAction(Action):
+    def __init__(self, from_territory_id: int, to_territory_id: int,):
         self.from_territory_id = from_territory_id
         self.to_territory_id = to_territory_id
-        self.troop_count = troop_count
     
-    def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
+    def apply(self, game_state: GameState, _: RiskMap) -> GameState:
         new_state = game_state.copy()
 
-        new_state.territory_troops[self.to_territory_id] += self.troop_count
-        new_state.territory_troops[self.from_territory_id] -= self.troop_count
+        new_state.current_fortify_route = (self.from_territory_id, self.to_territory_id)
 
-        return SkipAction().apply(new_state, risk_map) # Skip to end turn after fortifying
+        return new_state
 
     @classmethod
     def get_action_list(cls, game_state: GameState, risk_map: RiskMap) -> list[Self]:
-        if game_state.current_phase != GamePhase.FORTIFY:
+        if game_state.current_phase != GamePhase.FORTIFY or game_state.current_fortify_route != (-1, -1):
             return []
         
         visited: set[int] = set()
@@ -207,11 +205,11 @@ class FortifyAction(Action):
 
             connected_territories = get_connected_territories(territory_id)
 
-            for from_id in connected_territories:
-                for to_id in connected_territories:
-                    if from_id != to_id:
-                        for troop_count in range(1, game_state.territory_troops[from_id]):
-                            actions.append(cls(from_id, to_id, troop_count))
+            for from_territory_id in connected_territories:
+                for to_territory_id in connected_territories:
+                    if from_territory_id != to_territory_id:
+                        if game_state.territory_troops[from_territory_id] > 1: # Need at least 2 troops to fortify
+                            actions.append(cls(from_territory_id, to_territory_id))
 
             visited |= connected_territories
 
@@ -219,10 +217,37 @@ class FortifyAction(Action):
     
     @classmethod
     def get_name(cls) -> str:
-        return "FortifyAction"
+        return "FortifyRouteAction"
     
     def __repr__(self):
-        return f"FortifyAction(from_territory_id={self.from_territory_id}, to_territory_id={self.to_territory_id}, troop_count={self.troop_count})"
+        return f"FortifyRouteAction(from_territory_id={self.from_territory_id}, to_territory_id={self.to_territory_id})"
+
+class FortifyAmountAction(Action):
+    def __init__(self, troop_count: int):
+        self.troop_count = troop_count
+    
+    def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
+        new_state = game_state.copy()
+
+        new_state.territory_troops[new_state.current_fortify_route[1]] += self.troop_count
+        new_state.territory_troops[new_state.current_fortify_route[0]] -= self.troop_count
+        new_state.current_fortify_route = (-1, -1)
+        
+        return SkipAction().apply(new_state, risk_map) # Skip to end turn after fortifying
+
+    @classmethod
+    def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
+        if game_state.current_phase != GamePhase.FORTIFY or game_state.current_fortify_route == (-1, -1):
+            return []
+        
+        return [cls(troop_count) for troop_count in range(1, game_state.territory_troops[game_state.current_fortify_route[0]])]
+    
+    @classmethod
+    def get_name(cls) -> str:
+        return "FortifyAmountAction"
+    
+    def __repr__(self):
+        return f"FortifyAmountAction(troop_count={self.troop_count})"
 
 class SkipAction(Action):
     def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
@@ -253,7 +278,7 @@ class SkipAction(Action):
     
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
-        if (game_state.current_phase == GamePhase.DRAFT and game_state.deployment_troops > 0) or game_state.current_territory_transfer != (-1, -1):
+        if game_state.deployment_troops > 0 or game_state.current_territory_transfer != (-1, -1) or game_state.current_fortify_route != (-1, -1):
             return []
         
         return [cls()]
@@ -273,14 +298,16 @@ class ActionList:
         trade_actions: list[TradeAction],
         battle_actions: list[BattleAction],
         transfer_actions: list[TransferAction],
-        fortify_actions: list[FortifyAction],
+        fortify_route_actions: list[FortifyRouteAction],
+        fortify_amount_actions: list[FortifyAmountAction],
         skip_actions: list[SkipAction]
     ):
         self.deploy_actions = deploy_actions
         self.trade_actions = trade_actions
         self.battle_actions = battle_actions
         self.transfer_actions = transfer_actions
-        self.fortify_actions = fortify_actions
+        self.fortify_route_actions = fortify_route_actions
+        self.fortify_amount_actions = fortify_amount_actions
         self.skip_actions = skip_actions
     
     @classmethod
@@ -290,7 +317,8 @@ class ActionList:
             trade_actions=TradeAction.get_action_list(game_state, risk_map),
             battle_actions=BattleAction.get_action_list(game_state, risk_map),
             transfer_actions=TransferAction.get_action_list(game_state, risk_map),
-            fortify_actions=FortifyAction.get_action_list(game_state, risk_map),
+            fortify_route_actions=FortifyRouteAction.get_action_list(game_state, risk_map),
+            fortify_amount_actions=FortifyAmountAction.get_action_list(game_state, risk_map),
             skip_actions=SkipAction.get_action_list(game_state, risk_map)
         )
     
@@ -309,9 +337,12 @@ class ActionList:
         if i < len(self.transfer_actions):
             return self.transfer_actions[i]
         i -= len(self.transfer_actions)
-        if i < len(self.fortify_actions):
-            return self.fortify_actions[i]
-        i -= len(self.fortify_actions)
+        if i < len(self.fortify_route_actions):
+            return self.fortify_route_actions[i]
+        i -= len(self.fortify_route_actions)
+        if i < len(self.fortify_amount_actions):
+            return self.fortify_amount_actions[i]
+        i -= len(self.fortify_amount_actions)
 
         return self.skip_actions[i]
     
@@ -324,16 +355,18 @@ class ActionList:
             return self.battle_actions
         elif action_name == TransferAction.get_name():
             return self.transfer_actions
-        elif action_name == FortifyAction.get_name():
-            return self.fortify_actions
+        elif action_name == FortifyRouteAction.get_name():
+            return self.fortify_route_actions
+        elif action_name == FortifyAmountAction.get_name():
+            return self.fortify_amount_actions
         elif action_name == SkipAction.get_name():
             return self.skip_actions
         else:
             raise ValueError(f"Invalid action name: {action_name}")
         
     def size(self) -> int:
-        return len(self.deploy_actions) + len(self.trade_actions) + len(self.battle_actions) + len(self.transfer_actions) + len(self.fortify_actions) + len(self.skip_actions)
+        return len(self.deploy_actions) + len(self.trade_actions) + len(self.battle_actions) + len(self.transfer_actions) + len(self.fortify_route_actions) + len(self.fortify_amount_actions) + len(self.skip_actions)
     
     def flatten(self) -> list[Action]:
-        return self.deploy_actions + self.trade_actions + self.battle_actions + self.transfer_actions + self.fortify_actions + self.skip_actions
+        return self.deploy_actions + self.trade_actions + self.battle_actions + self.transfer_actions + self.fortify_route_actions + self.fortify_amount_actions + self.skip_actions
     
