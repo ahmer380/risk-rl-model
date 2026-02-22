@@ -35,7 +35,7 @@ class BattleObserver(Observer):
             self.player_telemetries[battle_log.attacker_player_id].attacks.append(battle_log)
             self.player_telemetries[battle_log.defender_player_id].defenses.append(battle_log)
     
-    def summarise(self) -> str:
+    def summarise_game(self) -> str:
         lines = ["#### Battle Observations ####"]
 
         # Add player-specific battle summaries

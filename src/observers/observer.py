@@ -1,4 +1,6 @@
-from abc import ABC
+from typing import Self
+
+from abc import ABC, abstractmethod
 
 from src.environment.actions import Action, ActionList
 from src.environment.game_state import GameState
@@ -25,5 +27,11 @@ class Observer(ABC):
     def on_game_end(self, terminal_state: GameState):
         """Called at the end of a game episode, with the final terminal state."""
     
-    def summarise(self) -> str:
+    @abstractmethod
+    def summarise_game(self) -> str:
         """Generate a human-readable summary of the observed game episode based on the collected data for the particular observer."""
+    
+    @classmethod
+    @abstractmethod
+    def summarise_simulation(cls, observers: list[Self]) -> str:
+        """Generate a human-readable summary of the observed simulation based on the collected aggregate data for the particular observer"""

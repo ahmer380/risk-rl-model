@@ -10,7 +10,7 @@ from src.observers.outcome_observer import OutcomeObserver
 from src.observers.player_telemetry import PlayerTelemetry
 
 class ObserverManager():
-    """Manages multiple observers and notifies them of game events."""
+    """Manages multiple observers and notifies them of game events for a single episode of Risk."""
     def __init__(
         self,
         risk_map: RiskMap,
@@ -45,6 +45,6 @@ class ObserverManager():
         for observer in self.observers:
             observer.on_game_end(terminal_state)
     
-    def summarise(self):
+    def summarise_game(self):
         for observer in self.observers:
-            print(observer.summarise() + "\n")
+            print(observer.summarise_game() + "\n")

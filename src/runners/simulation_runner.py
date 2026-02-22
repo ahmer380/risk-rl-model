@@ -36,14 +36,24 @@ class SimulationRunner:
             game_runner = GameRunner(self.risk_map, self.agents, observer_manager, self.max_episode_length)
             game_runner.run_episode()
     
-    def summarise_observations(self):
-        for i, observer_manager in enumerate(self.game_observations):
-            print(f"\n**** Summarising observations for episode {i + 1} ****")
-            observer_manager.summarise()
+    def summarise_game(self, episode: int = None):
+        if episode is not None:
+            print(f"\n**** Summarising observations for episode {episode} ****")
+            self.game_observations[episode - 1].summarise_game()
+        else: # Summarise all episodes
+            for i, observer_manager in enumerate(self.game_observations):
+                print(f"\n**** Summarising observations for episode {i + 1} ****")
+                observer_manager.summarise_game()
+
+    def summarise_simulation(self):
+        for i, observer in enumerate(self.game_observations[0].observers):
+            observers = [observer_manager.observers[i] for observer_manager in self.game_observations]
+            print(observer.summarise_simulation(observers))
 
 if __name__ == "__main__":
     risk_map = RiskMap.from_json("maps/classic.json")
     agents = [AdvantageAttackAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3)]
     simulation_runner = SimulationRunner(risk_map, agents, 10, True, False, False)
     simulation_runner.run_simulation()
-    simulation_runner.summarise_observations()
+    simulation_runner.summarise_game()
+    simulation_runner.summarise_simulation()

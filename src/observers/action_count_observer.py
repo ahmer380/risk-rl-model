@@ -41,7 +41,7 @@ class ActionCountObserver(Observer):
             self.player_telemetries[current_player].action_counts[action_type][1].append(executed_count)
             self.action_counts_this_turn[action_type] = [0, 0]
 
-    def summarise(self) -> str:
+    def summarise_game(self) -> str:
         lines = ["#### Action Count Observations ####"]
 
         # Add action generation counting summaries
