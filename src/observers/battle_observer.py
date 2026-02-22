@@ -3,26 +3,18 @@ from tabulate import tabulate
 from collections import defaultdict
 
 from src.environment.actions import Action, BattleAction
-from src.environment.game_state import GameState, GamePhase
-from src.environment.map import RiskMap, Territory
+from src.environment.game_state import GameState
+from src.environment.map import Territory
 
 from src.observers.observer import Observer
-from src.observers.player_telemetry import BattleLog, PlayerTelemetry
+from src.observers.player_telemetry import BattleLog
 
 class BattleObserver(Observer):
     """Observer for tracking battle events for experimental analysis."""
-    def __init__(self, risk_map: RiskMap, player_telemetries: list[PlayerTelemetry]):
-        super().__init__(risk_map, player_telemetries)
-
-        self.turn_count = 1
-
     def on_action_taken(self, action: Action, previous_state: GameState, current_state: GameState):
-        if previous_state.current_phase == GamePhase.FORTIFY and current_state.current_phase == GamePhase.DRAFT:
-            self.turn_count += 1
-
         if isinstance(action, BattleAction):
             battle_log = BattleLog(
-                turn_number=self.turn_count,
+                turn_number=self.core_observer.turn_count,
                 attacker_player_id=previous_state.current_player,
                 attacker_territory_id=action.attacker_territory_id,
                 attacker_troops=previous_state.territory_troops[action.attacker_territory_id],
@@ -32,8 +24,8 @@ class BattleObserver(Observer):
                 successful_battle=current_state.current_territory_transfer == (action.attacker_territory_id, action.defender_territory_id)
             )
 
-            self.player_telemetries[battle_log.attacker_player_id].attacks.append(battle_log)
-            self.player_telemetries[battle_log.defender_player_id].defenses.append(battle_log)
+            self.core_observer.player_telemetries[battle_log.attacker_player_id].attacks.append(battle_log)
+            self.core_observer.player_telemetries[battle_log.defender_player_id].defenses.append(battle_log)
     
     def summarise_game(self) -> str:
         lines = ["#### Battle Observations ####"]
@@ -50,7 +42,7 @@ class BattleObserver(Observer):
             "Average\nbattles\nper turn"
         ]
         player_rows = []
-        for player_telemetry in self.player_telemetries:
+        for player_telemetry in self.core_observer.player_telemetries:
             player_row = []
             player_row.append(f"Player {player_telemetry.player_id}")
             player_row.append(len(player_telemetry.attacks))
@@ -83,7 +75,7 @@ class BattleObserver(Observer):
         """Calculate the battle win rate for each player based on their recorded attacks and their outcomes."""
         win_rates = []
 
-        for player_telemetry in self.player_telemetries:
+        for player_telemetry in self.core_observer.player_telemetries:
             total_attacks = len(player_telemetry.attacks)
             successful_attacks = sum(1 for attack in player_telemetry.attacks if attack.successful_battle)
             win_rate = successful_attacks / total_attacks if total_attacks > 0 else 0.0
@@ -95,9 +87,9 @@ class BattleObserver(Observer):
         """Calculate the average number of battles initiated per turn for each player."""
         average_battles_per_turn = []
 
-        for player_telemetry in self.player_telemetries:
+        for player_telemetry in self.core_observer.player_telemetries:
             total_battles = len(player_telemetry.attacks)
-            average_battles = total_battles / (player_telemetry.eliminated_turn_count if player_telemetry.eliminated_turn_count else self.turn_count)
+            average_battles = total_battles / (player_telemetry.eliminated_turn_count if player_telemetry.eliminated_turn_count else self.core_observer.turn_count)
             average_battles_per_turn.append(average_battles)
 
         return average_battles_per_turn
@@ -106,9 +98,9 @@ class BattleObserver(Observer):
         """Calculate the number of times each territory attacked, or was attacked in a battle across all players."""
         territory_battle_counts: dict[Territory, list[int]] = defaultdict(lambda: [0, 0])  # [attacks, defenses]
 
-        for player_telemetry in self.player_telemetries:
+        for player_telemetry in self.core_observer.player_telemetries:
             for battle_log in player_telemetry.attacks:
-                territory_battle_counts[self.risk_map.territories[battle_log.attacker_territory_id]][0] += 1
-                territory_battle_counts[self.risk_map.territories[battle_log.defender_territory_id]][1] += 1
+                territory_battle_counts[self.core_observer.risk_map.territories[battle_log.attacker_territory_id]][0] += 1
+                territory_battle_counts[self.core_observer.risk_map.territories[battle_log.defender_territory_id]][1] += 1
 
         return territory_battle_counts

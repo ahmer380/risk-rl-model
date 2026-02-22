@@ -5,7 +5,7 @@ from src.environment.map import RiskMap
 
 from src.observers.action_count_observer import ActionCountObserver
 from src.observers.battle_observer import BattleObserver
-from src.observers.observer import Observer
+from src.observers.observer import Observer, CoreObserver
 from src.observers.outcome_observer import OutcomeObserver
 from src.observers.player_telemetry import PlayerTelemetry
 
@@ -21,13 +21,16 @@ class ObserverManager():
     ):
         self.observers: list[Observer] = []
         
-        player_telemetries = [PlayerTelemetry(i) for i in range(num_players)]
-        if enable_outcome_observer:
-            self.observers.append(OutcomeObserver(risk_map, player_telemetries))
-        if enable_battle_observer:
-            self.observers.append(BattleObserver(risk_map, player_telemetries))
-        if enable_temporal_observer:
-            self.observers.append(ActionCountObserver(risk_map, player_telemetries))
+        if enable_outcome_observer or enable_battle_observer or enable_temporal_observer:
+            core_observer = CoreObserver(risk_map, [PlayerTelemetry(i) for i in range(num_players)])
+            self.observers.append(core_observer)
+
+            if enable_outcome_observer:
+                self.observers.append(OutcomeObserver(core_observer))
+            if enable_battle_observer:
+                self.observers.append(BattleObserver(core_observer))
+            if enable_temporal_observer:
+                self.observers.append(ActionCountObserver(core_observer))
     
     def notify_game_start(self):
         for observer in self.observers:
