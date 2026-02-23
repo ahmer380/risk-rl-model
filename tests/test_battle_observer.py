@@ -43,14 +43,12 @@ class TestBattleObserver(unittest.TestCase):
             self.battle_observer.on_action_taken(transfer_action, previous_state, self.game_state)
     
     def test_battle_win_rates(self):
-        win_rates = self.battle_observer.get_battle_win_rates()
-        self.assertEqual(win_rates[0], 4/5)
-        self.assertEqual(win_rates[1], 0.0)
+        self.assertEqual(self.battle_observer.get_battle_win_rate(self.battle_observer.core_observer.player_telemetries[0]), 4/5)
+        self.assertEqual(self.battle_observer.get_battle_win_rate(self.battle_observer.core_observer.player_telemetries[1]), 0.0)
     
     def test_average_battles_per_turn(self):
-        average_battles_per_turn = self.battle_observer.get_average_battles_per_turn()
-        self.assertEqual(average_battles_per_turn[0], 5/1)
-        self.assertEqual(average_battles_per_turn[1], 0.0)
+        self.assertEqual(self.battle_observer.get_average_battles_per_turn(self.battle_observer.core_observer.player_telemetries[0]), 5/1)
+        self.assertEqual(self.battle_observer.get_average_battles_per_turn(self.battle_observer.core_observer.player_telemetries[1]), 0.0)
     
     def test_territory_battle_counts(self):
         territory_battle_counts = self.battle_observer.get_territory_battle_counts()

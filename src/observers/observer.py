@@ -53,3 +53,7 @@ class CoreObserver(Observer):
             self.turn_count += 1
         
         self.action_count += 1
+    
+    def get_player_turn_count(self, player_telemetry: PlayerTelemetry) -> int:
+        """Return the number of turns a player has been active in the game."""
+        return player_telemetry.eliminated_turn_count if player_telemetry.eliminated_turn_count else self.turn_count

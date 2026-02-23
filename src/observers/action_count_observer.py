@@ -1,3 +1,5 @@
+from typing import Self
+
 from tabulate import tabulate
 
 from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
@@ -95,3 +97,9 @@ class ActionCountObserver(Observer):
         lines.append(tabulate(rows, headers=headers, tablefmt="grid", colalign=["center"]*len(headers)))
         
         return "\n".join(lines)
+    
+    """Class methods for collecting and summarising aggregate outcome data for experimental anlaysis """
+    
+    @classmethod
+    def summarise_simulation(cls, observers: list[Self]) -> str:
+        return ""        
