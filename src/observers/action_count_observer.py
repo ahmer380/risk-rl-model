@@ -1,16 +1,16 @@
+from typing import Self
+
 from tabulate import tabulate
 
 from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
 from src.environment.game_state import GameState, GamePhase
-from src.environment.map import RiskMap
 
-from src.observers.observer import Observer
-from src.observers.player_telemetry import PlayerTelemetry
+from src.observers.observer import Observer, CoreObserver
 
 class ActionCountObserver(Observer):
     """Observer for counting the distribution of actions generated and executed during a game."""
-    def __init__(self, risk_map: RiskMap, player_telemetries: list[PlayerTelemetry]):
-        super().__init__(risk_map, player_telemetries)
+    def __init__(self, core_observer: CoreObserver):
+        super().__init__(core_observer)
         
         self.action_counts_this_turn = {
             DeployAction.get_name(): [0, 0],
@@ -30,18 +30,18 @@ class ActionCountObserver(Observer):
         self.action_counts_this_turn[action.get_name()][1] += 1
 
         if previous_state.current_phase == GamePhase.FORTIFY and current_state.current_phase == GamePhase.DRAFT:
-                self.push_action_counts_this_turn(previous_state.current_player)
+            self.push_action_counts_this_turn(previous_state.current_player)
     
     def on_game_end(self, terminal_state: GameState):
         self.push_action_counts_this_turn(terminal_state.current_player)
     
     def push_action_counts_this_turn(self, current_player: int):
         for action_type, (generated_count, executed_count) in self.action_counts_this_turn.items():
-            self.player_telemetries[current_player].action_counts[action_type][0].append(generated_count)
-            self.player_telemetries[current_player].action_counts[action_type][1].append(executed_count)
+            self.core_observer.player_telemetries[current_player].action_counts[action_type][0].append(generated_count)
+            self.core_observer.player_telemetries[current_player].action_counts[action_type][1].append(executed_count)
             self.action_counts_this_turn[action_type] = [0, 0]
 
-    def summarise(self) -> str:
+    def summarise_game(self) -> str:
         lines = ["#### Action Count Observations ####"]
 
         # Add action generation counting summaries
@@ -67,7 +67,7 @@ class ActionCountObserver(Observer):
             "Average\nskip\nactions"
         ]
         rows = []
-        for player_telemetry in self.player_telemetries:
+        for player_telemetry in self.core_observer.player_telemetries:
             total_turns = len(player_telemetry.action_counts[DeployAction.get_name()][0]) # same length for all action type lists
             row = []
             row.append(f"Player {player_telemetry.player_id}")
@@ -83,7 +83,7 @@ class ActionCountObserver(Observer):
         # Add action execution counting summaries
         lines.append(f"\n---- Action Execution Counting Statistics ----")
         rows = []
-        for player_telemetry in self.player_telemetries:
+        for player_telemetry in self.core_observer.player_telemetries:
             total_turns = len(player_telemetry.action_counts[DeployAction.get_name()][1]) # same length for all action type lists
             row = []
             row.append(f"Player {player_telemetry.player_id}")
@@ -97,3 +97,9 @@ class ActionCountObserver(Observer):
         lines.append(tabulate(rows, headers=headers, tablefmt="grid", colalign=["center"]*len(headers)))
         
         return "\n".join(lines)
+    
+    """Class methods for collecting and summarising aggregate outcome data for experimental anlaysis """
+    
+    @classmethod
+    def summarise_simulation(cls, observers: list[Self]) -> str:
+        return ""        
