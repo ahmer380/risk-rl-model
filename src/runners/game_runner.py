@@ -1,5 +1,5 @@
 
-from src.agents.agent import Agent, RandomAgent, AdvantageAttackAgent
+from src.agents.agent import Agent
 
 from src.environment.map import RiskMap
 from src.environment.environment import RiskEnvironment
