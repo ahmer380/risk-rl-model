@@ -16,7 +16,7 @@ class SimulationRunner:
         enable_outcome_observer = False,
         enable_battle_observer = False,
         enable_action_count_observer = False,
-        max_episode_length = 1000000,
+        max_episode_length = 100000,
     ):
         self.risk_map = risk_map
         self.agents = agents

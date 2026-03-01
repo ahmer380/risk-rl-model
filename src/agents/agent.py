@@ -1,7 +1,7 @@
 from abc import ABC
 
 from src.agents.draft_strategy import DraftStrategy, RandomDraftStrategy, MinimumDraftStrategy
-from src.agents.attack_strategy import AttackStrategy, RandomAttackStrategy, AdvantageAttackStrategy
+from src.agents.attack_strategy import AttackStrategy, RandomAttackStrategy, AdvantageAttackStrategy, DisadvantageAttackStrategy
 from src.agents.fortify_strategy import FortifyStrategy, RandomFortifyStrategy
 
 from src.environment.actions import Action, ActionList
@@ -35,3 +35,8 @@ class AdvantageAttackAgent(Agent):
     """Only battles if the odds are in the attacker's favour"""
     def __init__(self, player_id: int):
         super().__init__(player_id, MinimumDraftStrategy(), AdvantageAttackStrategy(), RandomFortifyStrategy())
+
+class DisadvantageAttackAgent(Agent):
+    """Always chooses the battle action with the highest odds of losing"""
+    def __init__(self, player_id: int):
+        super().__init__(player_id, MinimumDraftStrategy(), DisadvantageAttackStrategy(), RandomFortifyStrategy())
