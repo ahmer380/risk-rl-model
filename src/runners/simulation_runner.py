@@ -55,8 +55,8 @@ class SimulationRunner:
 
 if __name__ == "__main__":
     risk_map = RiskMap.from_json("maps/classic.json")
-    agents = [AdvantageAttackAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3)]
-    simulation_runner = SimulationRunner(risk_map, agents, 10, True, True, False)
+    agents = [AdvantageAttackAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)]
+    simulation_runner = SimulationRunner(risk_map, agents, 100, True, True, False)
     simulation_runner.run_simulation()
     # simulation_runner.summarise_game()
     simulation_runner.summarise_simulation()

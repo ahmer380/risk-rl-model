@@ -44,7 +44,8 @@ class OutcomeObserver(Observer):
 
         # Add winner distribution summaries
         lines.append(f"\n---- Winner Distribution Statistics ----")
-        headers = ["Player", "1st", "2nd", "3rd", "4th", "Stalemate", "Win\nrate (%)", "Average\nfinish\nposition"]
+        finish_position_headers = ["1st", "2nd", "3rd", "4th", "5th", "6th"]
+        headers = ["Player"] + finish_position_headers[:len(observers[0].core_observer.player_telemetries)] + ["Stalemate", "Win\nrate (%)", "Average\nfinish\nposition"]
         lines.append(tabulate(cls.get_winner_distributions(observers), headers=headers, tablefmt="grid", colalign=["center"]*len(headers)))
         
         return "\n".join(lines)
@@ -67,19 +68,19 @@ class OutcomeObserver(Observer):
     
     @classmethod
     def get_winner_distributions(cls, observers: list[Self]) -> list[list]:
-        """Return list of [player_id, 1st, 2nd, 3rd, 4th, stalemate, win rate, average finish position] for each player."""
-        rows = [[i, 0, 0, 0, 0, 0, 0.0, 0.0] for i in range(len(observers[0].core_observer.player_telemetries))]
+        """Return list of [player_id, 1st, 2nd, ..., nth, stalemate, win rate, average finish position] for each player."""
+        rows = [[i] + [0] * len(observers[0].core_observer.player_telemetries) + [0, 0.0, 0.0] for i in range(len(observers[0].core_observer.player_telemetries))]
 
         for observer in observers:
             finish_order = sorted(observer.core_observer.player_telemetries, key=lambda x: (x.eliminated_turn_count is not None, -(x.eliminated_turn_count or 0)))
             for i, player_telemetry in enumerate(finish_order):
                 if player_telemetry.eliminated_turn_count is None and not observer.terminal_state.is_terminal_state():
-                    rows[player_telemetry.player_id][5] += 1 # stalemate
+                    rows[player_telemetry.player_id][-3] += 1 # stalemate
                 else:
-                    rows[player_telemetry.player_id][i + 1] += 1 # 1st, 2nd, 3rd or 4th place
+                    rows[player_telemetry.player_id][i + 1] += 1 # 1st, 2nd, ..., or nth place
 
         for row in rows:
-            row[6] = row[1] / len(observers) * 100 # win rate
-            row[7] = sum((i * row[i] for i in range(1, 5))) / len(observers) # average finish position
+            row[-2] = row[1] / len(observers) * 100 # win rate
+            row[-1] = (sum(i * row[i] for i in range(1, len(observers[0].core_observer.player_telemetries) + 1)) + row[-3]) / len(observers) # average finish position
         
         return rows

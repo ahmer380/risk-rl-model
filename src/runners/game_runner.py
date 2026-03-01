@@ -15,6 +15,7 @@ class GameRunner:
         observer_manager: ObserverManager,
         max_episode_length: int,
     ):
+        assert len(agents) > 1, "At least two agents are required to run a game."
         assert [agent.player_id for agent in agents] == list(range(len(agents))), "Agent player IDs must be in order and match the number of agents."
         
         self.environment = RiskEnvironment(risk_map, len(agents))
