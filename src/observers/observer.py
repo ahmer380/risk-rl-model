@@ -11,7 +11,7 @@ from src.observers.player_telemetry import PlayerTelemetry
 class Observer(ABC):
     """Abstract base class for observers to track specific elements of a single Risk game.
     Observers are NOT responsible for influencing the environment state nor agent decisions/rewards."""
-    def __init__(self, core_observer: "CoreObserver"):
+    def __init__(self, core_observer: "CoreObserver" = None):
         self.core_observer = core_observer
 
     def on_game_start(self):
@@ -29,6 +29,10 @@ class Observer(ABC):
     def summarise_game(self) -> str:
         """Generate a human-readable summary of the observed game episode based on the collected data for the particular observer."""
         return ""
+    
+    def clean_copy(self) -> Self:
+        """Create a clean copy of the observer with no collected data."""
+        return self.__class__(core_observer = None)
     
     @classmethod
     def summarise_simulation(cls, observers: list[Self]) -> str:

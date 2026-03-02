@@ -10,7 +10,7 @@ from src.observers.observer import Observer, CoreObserver
 
 class OutcomeObserver(Observer):
     """Observer for tracking the outcome of the game, including the winner and final game state."""
-    def __init__(self, core_observer: CoreObserver):
+    def __init__(self, core_observer: CoreObserver = None):
         super().__init__(core_observer)
 
         self.terminal_state: GameState = None

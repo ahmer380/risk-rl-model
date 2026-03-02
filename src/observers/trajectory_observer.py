@@ -14,7 +14,7 @@ class TrajectoryItem:
         return self.next_state.is_terminal_state()
 
 class TrajectoryObserver(Observer):
-    def __init__(self, core_observer: CoreObserver):
+    def __init__(self, core_observer: CoreObserver = None):
         super().__init__(core_observer)
 
         self.trajectory: list[TrajectoryItem] = []

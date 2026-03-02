@@ -2,7 +2,10 @@ from src.agents.agent import Agent, RandomAgent, AdvantageAttackAgent
 
 from src.environment.map import RiskMap
 
+from src.observers.battle_observer import BattleObserver
+from src.observers.observer import Observer
 from src.observers.observer_manager import ObserverManager
+from src.observers.outcome_observer import OutcomeObserver
 
 from src.runners.game_runner import GameRunner
 
@@ -13,30 +16,25 @@ class SimulationRunner:
         risk_map: RiskMap,
         agents: list[Agent],
         num_episodes: int,
-        enable_outcome_observer = False,
-        enable_battle_observer = False,
-        enable_action_count_observer = False,
+        observers: list[Observer] = [],
         max_episode_length = 100000,
     ):
         self.risk_map = risk_map
         self.agents = agents
         self.num_episodes = num_episodes
         self.max_episode_length = max_episode_length
-        self.enable_outcome_observer = enable_outcome_observer
-        self.enable_battle_observer = enable_battle_observer
-        self.enable_action_count_observer = enable_action_count_observer
+        self.observers = observers
         
         self.game_observations: list[ObserverManager] = []
     
     def run_simulation(self):
         for episode in range(self.num_episodes):
             print(f"\rStarting episode {episode + 1}/{self.num_episodes}", end="")
+            observers = [observer.clean_copy() for observer in self.observers]
             observer_manager = ObserverManager(
                 self.risk_map, 
                 len(self.agents),
-                self.enable_outcome_observer,
-                self.enable_battle_observer,
-                self.enable_action_count_observer,
+                observers,
             )
             self.game_observations.append(observer_manager)
             game_runner = GameRunner(self.risk_map, self.agents, observer_manager, self.max_episode_length)
@@ -62,7 +60,7 @@ class SimulationRunner:
 if __name__ == "__main__":
     risk_map = RiskMap.from_json("maps/classic.json")
     agents = [AdvantageAttackAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)]
-    simulation_runner = SimulationRunner(risk_map, agents, 100, enable_outcome_observer=True, enable_battle_observer=True)
+    simulation_runner = SimulationRunner(risk_map, agents, 100, observers=[OutcomeObserver(), BattleObserver()])
     simulation_runner.run_simulation()
     # simulation_runner.summarise_game()
     simulation_runner.summarise_simulation()

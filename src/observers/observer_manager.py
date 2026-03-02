@@ -3,12 +3,8 @@ from src.environment.actions import Action, ActionList
 from src.environment.game_state import GameState
 from src.environment.map import RiskMap
 
-from src.observers.action_count_observer import ActionCountObserver
-from src.observers.battle_observer import BattleObserver
 from src.observers.observer import Observer, CoreObserver
-from src.observers.outcome_observer import OutcomeObserver
 from src.observers.player_telemetry import PlayerTelemetry
-from src.observers.trajectory_observer import TrajectoryObserver
 
 class ObserverManager():
     """Manages multiple observers and notifies them of game events for a single episode of Risk."""
@@ -16,28 +12,20 @@ class ObserverManager():
         self,
         risk_map: RiskMap,
         num_players: int,
-        enable_outcome_observer = False,
-        enable_battle_observer = False,
-        enable_temporal_observer = False,
-        enable_trajectory_observer = False,
+        observers: list[Observer] = [],
     ):
-        self.observers: list[Observer] = []
-        
-        if enable_outcome_observer or enable_battle_observer or enable_temporal_observer or enable_trajectory_observer:
-            core_observer = CoreObserver(risk_map, [PlayerTelemetry(i) for i in range(num_players)])
-            self.observers.append(core_observer)
+        assert CoreObserver not in [type(observer) for observer in observers], "CoreObserver is automatically added and should not be included in the observer list."
 
-            if enable_outcome_observer:
-                self.observers.append(OutcomeObserver(core_observer))
-            if enable_battle_observer:
-                self.observers.append(BattleObserver(core_observer))
-            if enable_temporal_observer:
-                self.observers.append(ActionCountObserver(core_observer))
-            if enable_trajectory_observer:
-                self.observers.append(TrajectoryObserver(core_observer))
+        self.observers: list[Observer] = observers
+        if self.observers:
+            core_observer = CoreObserver(risk_map, [PlayerTelemetry(i) for i in range(num_players)])
+            for observer in self.observers:
+                observer.core_observer = core_observer
+            self.observers.insert(0, core_observer)
     
     def notify_game_start(self):
         for observer in self.observers:
+            assert isinstance(observer, CoreObserver) or observer.core_observer is not None, "CoreObserver must be defined for each observer before the game starts."
             observer.on_game_start()
     
     def notify_action_list_generated(self, action_list: ActionList):

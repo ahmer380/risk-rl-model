@@ -9,7 +9,7 @@ from src.observers.observer import Observer, CoreObserver
 
 class ActionCountObserver(Observer):
     """Observer for counting the distribution of actions generated and executed during a game."""
-    def __init__(self, core_observer: CoreObserver):
+    def __init__(self, core_observer: CoreObserver = None):
         super().__init__(core_observer)
         
         self.action_counts_this_turn = {
