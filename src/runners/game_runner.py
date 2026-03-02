@@ -1,5 +1,5 @@
 
-from src.agents.agent import Agent, RandomAgent, AdvantageAttackAgent
+from src.agents.agent import Agent
 
 from src.environment.map import RiskMap
 from src.environment.environment import RiskEnvironment
@@ -15,6 +15,7 @@ class GameRunner:
         observer_manager: ObserverManager,
         max_episode_length: int,
     ):
+        assert len(agents) > 1, "At least two agents are required to run a game."
         assert [agent.player_id for agent in agents] == list(range(len(agents))), "Agent player IDs must be in order and match the number of agents."
         
         self.environment = RiskEnvironment(risk_map, len(agents))
@@ -37,8 +38,8 @@ class GameRunner:
             self.observer_manager.notify_action_list_generated(action_list)
 
             selected_action = self.agents[previous_state.current_player].select_action(action_list, previous_state)
-            current_state, _, is_terminal_state = self.environment.step(selected_action)
-            self.observer_manager.notify_action_taken(selected_action, previous_state, current_state)
+            current_state, reward, is_terminal_state = self.environment.step(selected_action)
+            self.observer_manager.notify_action_taken(selected_action, previous_state, current_state, reward)
 
             episode_length += 1
 

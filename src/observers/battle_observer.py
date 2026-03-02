@@ -13,7 +13,7 @@ from src.observers.player_telemetry import PlayerTelemetry, BattleLog
 
 class BattleObserver(Observer):
     """Observer for tracking battle events for experimental analysis."""
-    def on_action_taken(self, action: Action, previous_state: GameState, current_state: GameState):
+    def on_action_taken(self, action: Action, previous_state: GameState, current_state: GameState, _: float):
         if isinstance(action, BattleAction):
             battle_log = BattleLog(
                 turn_number=self.core_observer.turn_count,

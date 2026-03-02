@@ -2,11 +2,11 @@ import csv
 import random
 
 class BlitzBattleSimulator:
-    def __init__(self):
+    def __init__(self, dimension: int = 100):
         # key = (attacker_troops, defender_troops), value = {key = (remaining_attacker_troops, remaining_defender_troops), value = probability}
         self.blitz_probability_matrix: dict[tuple[int, int], dict[tuple[int, int], float]] = {}
 
-        with open("src/blitz_battle_simulator/blitz_probability_matrix.csv", "r") as file:
+        with open(f"src/blitz_battle_simulator/{dimension}_d_blitz_probability_matrix.csv", "r") as file:
             reader = csv.reader(file)
             headers = next(reader)
             self.dimension = int(headers[1][1:-1].split("/")[0])
