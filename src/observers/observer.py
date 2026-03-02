@@ -20,7 +20,7 @@ class Observer(ABC):
     def on_action_list_generated(self, action_list: ActionList):
         """Called after the environment generates a list of valid actions"""
 
-    def on_action_taken(self, action: Action, previous_state: GameState, current_state: GameState):
+    def on_action_taken(self, action: Action, previous_state: GameState, current_state: GameState, reward: float):
         """Called after an action is taken, such that current_state = action.apply(previous_state)."""
 
     def on_game_end(self, terminal_state: GameState):
@@ -44,7 +44,7 @@ class CoreObserver(Observer):
         self.action_count = 0
         self.turn_count = 1
     
-    def on_action_taken(self, _: Action, previous_state: GameState, current_state: GameState):
+    def on_action_taken(self, _action: Action, previous_state: GameState, current_state: GameState, _reward: float):
         for player_telemetry in self.player_telemetries:
             if previous_state.active_players[player_telemetry.player_id] and not current_state.active_players[player_telemetry.player_id]:
                 player_telemetry.eliminated_turn_count = self.turn_count

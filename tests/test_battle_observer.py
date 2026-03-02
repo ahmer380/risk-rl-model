@@ -34,13 +34,13 @@ class TestBattleObserver(unittest.TestCase):
         previous_state = self.game_state
         battle_action = BattleAction(attacker_territory_id, defender_territory_id)
         self.game_state = battle_action.apply(self.game_state, self.classic_map)
-        self.battle_observer.on_action_taken(battle_action, previous_state, self.game_state)
+        self.battle_observer.on_action_taken(battle_action, previous_state, self.game_state, None)
 
         if self.game_state.current_territory_transfer == (attacker_territory_id, defender_territory_id):
             previous_state = self.game_state
             transfer_action = TransferAction(self.game_state.territory_troops[attacker_territory_id] - 1)
             self.game_state = transfer_action.apply(self.game_state, self.classic_map)
-            self.battle_observer.on_action_taken(transfer_action, previous_state, self.game_state)
+            self.battle_observer.on_action_taken(transfer_action, previous_state, self.game_state, None)
     
     def test_battle_win_rates(self):
         self.assertEqual(self.battle_observer.get_battle_win_rate(self.battle_observer.core_observer.player_telemetries[0]), 4/5)

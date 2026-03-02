@@ -31,7 +31,13 @@ class SimulationRunner:
     def run_simulation(self):
         for episode in range(self.num_episodes):
             print(f"\rStarting episode {episode + 1}/{self.num_episodes}", end="")
-            observer_manager = ObserverManager(self.risk_map, len(self.agents), self.enable_outcome_observer, self.enable_battle_observer, self.enable_action_count_observer)
+            observer_manager = ObserverManager(
+                self.risk_map, 
+                len(self.agents),
+                self.enable_outcome_observer,
+                self.enable_battle_observer,
+                self.enable_action_count_observer,
+            )
             self.game_observations.append(observer_manager)
             game_runner = GameRunner(self.risk_map, self.agents, observer_manager, self.max_episode_length)
             game_runner.run_episode()
@@ -56,7 +62,7 @@ class SimulationRunner:
 if __name__ == "__main__":
     risk_map = RiskMap.from_json("maps/classic.json")
     agents = [AdvantageAttackAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)]
-    simulation_runner = SimulationRunner(risk_map, agents, 100, True, True, False)
+    simulation_runner = SimulationRunner(risk_map, agents, 100, enable_outcome_observer=True, enable_battle_observer=True)
     simulation_runner.run_simulation()
     # simulation_runner.summarise_game()
     simulation_runner.summarise_simulation()

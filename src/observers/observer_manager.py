@@ -8,6 +8,7 @@ from src.observers.battle_observer import BattleObserver
 from src.observers.observer import Observer, CoreObserver
 from src.observers.outcome_observer import OutcomeObserver
 from src.observers.player_telemetry import PlayerTelemetry
+from src.observers.trajectory_observer import TrajectoryObserver
 
 class ObserverManager():
     """Manages multiple observers and notifies them of game events for a single episode of Risk."""
@@ -17,11 +18,12 @@ class ObserverManager():
         num_players: int,
         enable_outcome_observer = False,
         enable_battle_observer = False,
-        enable_temporal_observer = False
+        enable_temporal_observer = False,
+        enable_trajectory_observer = False,
     ):
         self.observers: list[Observer] = []
         
-        if enable_outcome_observer or enable_battle_observer or enable_temporal_observer:
+        if enable_outcome_observer or enable_battle_observer or enable_temporal_observer or enable_trajectory_observer:
             core_observer = CoreObserver(risk_map, [PlayerTelemetry(i) for i in range(num_players)])
             self.observers.append(core_observer)
 
@@ -31,6 +33,8 @@ class ObserverManager():
                 self.observers.append(BattleObserver(core_observer))
             if enable_temporal_observer:
                 self.observers.append(ActionCountObserver(core_observer))
+            if enable_trajectory_observer:
+                self.observers.append(TrajectoryObserver(core_observer))
     
     def notify_game_start(self):
         for observer in self.observers:
@@ -40,9 +44,9 @@ class ObserverManager():
         for observer in self.observers:
             observer.on_action_list_generated(action_list)
     
-    def notify_action_taken(self, action: Action, previous_state: GameState, current_state: GameState):
+    def notify_action_taken(self, action: Action, previous_state: GameState, current_state: GameState, reward: float):
         for observer in self.observers:
-            observer.on_action_taken(action, previous_state, current_state)
+            observer.on_action_taken(action, previous_state, current_state, reward)
     
     def notify_game_end(self, terminal_state: GameState):
         for observer in self.observers:
