@@ -55,17 +55,19 @@ class DeployAction(Action):
         return f"DeployAction(territory_id={self.territory_id})"
 
 class TradeAction(Action):
-    def __init__(self, territory_cards: list[TerritoryCard]):
-        assert len(territory_cards) == 3, "Must trade exactly 3 cards"
-        self.territory_cards = sorted(territory_cards, key=lambda card: card.territory_id)
+    def __init__(self, territory_card_indexes: list[int]):
+        assert len(territory_card_indexes) == 3, "Must trade exactly 3 cards"
+        self.territory_card_indexes = sorted(territory_card_indexes)
     
     def apply(self, game_state: GameState, _: RiskMap) -> GameState:
         new_state = game_state.copy()
 
-        for card in self.territory_cards:
-            new_state.player_territory_cards[new_state.current_player].remove(card)
-            if new_state.territory_owners[card.territory_id] == new_state.current_player:
-                new_state.territory_troops[card.territory_id] += 2 # Bonus troops for trading in a card of a territory you own
+        for territory_card_index in self.territory_card_indexes:
+            territory_card = new_state.player_territory_cards[new_state.current_player][territory_card_index]
+            if new_state.territory_owners[territory_card.territory_id] == new_state.current_player:
+                new_state.territory_troops[territory_card.territory_id] += 2 # Bonus troops for trading in a card of a territory you own
+        
+        new_state.player_territory_cards[new_state.current_player] = [card for i, card in enumerate(new_state.player_territory_cards[new_state.current_player]) if i not in self.territory_card_indexes] + [None] * 3 # Remove traded cards and add None placeholders to maintain list size
         
         bonuses = [4, 6, 8, 10, 12, 15]
         new_state.deployment_troops += bonuses[new_state.trade_count] if new_state.trade_count < len(bonuses) else min(new_state.trade_count * 5 - 10, 30)
@@ -75,21 +77,24 @@ class TradeAction(Action):
 
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
-        if game_state.current_phase != GamePhase.DRAFT or len(game_state.player_territory_cards[game_state.current_player]) < 3:
+        if game_state.current_phase != GamePhase.DRAFT: 
             return []
 
-        def is_valid_set(cards: tuple[TerritoryCard, TerritoryCard, TerritoryCard]) -> bool:
-            combat_arms = {card.combat_arm for card in cards}
+        def is_valid_set(card_indexes: tuple[int, int, int]) -> bool:
+            if any(game_state.player_territory_cards[game_state.current_player][card_index] is None for card_index in card_indexes):
+                return False
+            
+            combat_arms = {game_state.player_territory_cards[game_state.current_player][card_index].combat_arm for card_index in card_indexes}
             return CombatArm.WILD in combat_arms or len(combat_arms) == 1 or len(combat_arms) == 3
 
-        return [cls(list(cards)) for cards in combinations(game_state.player_territory_cards[game_state.current_player], 3) if is_valid_set(cards)]
+        return [cls(list(card_indexes)) for card_indexes in combinations(range(5), 3) if is_valid_set(card_indexes)]
     
     @classmethod
     def get_name(cls) -> str:
         return "TradeAction"
     
     def __repr__(self):
-        return f"TradeAction(territory_cards={self.territory_cards})"
+        return f"TradeAction(territory_cards={self.territory_card_indexes})"
 
 class BattleAction(Action):
     def __init__(self, attacker_territory_id: int, defender_territory_id: int):
@@ -112,11 +117,14 @@ class BattleAction(Action):
 
             if all(territory_owner != previous_territory_owner for territory_owner in new_state.territory_owners): # Defender is eliminated
                 new_state.active_players[previous_territory_owner] = False
-                new_state.player_territory_cards[new_state.current_player].extend(new_state.player_territory_cards[previous_territory_owner]) 
-                new_state.player_territory_cards[previous_territory_owner] = []
 
-                if new_state.is_terminal_state():
-                    pass # TODO: Handle logic here? or in env?
+                territory_cards_to_transfer = [card for card in new_state.player_territory_cards[previous_territory_owner] if card is not None]
+                for territory_card in territory_cards_to_transfer:
+                    if None in new_state.player_territory_cards[new_state.current_player]:
+                        empty_card_index = new_state.player_territory_cards[new_state.current_player].index(None)
+                        new_state.player_territory_cards[new_state.current_player][empty_card_index] = territory_card
+
+                new_state.player_territory_cards[previous_territory_owner] = [None] * 5
 
         return new_state
 
@@ -259,8 +267,10 @@ class SkipAction(Action):
             new_state.current_phase = GamePhase.FORTIFY
         elif new_state.current_phase == GamePhase.FORTIFY:
             # Draw random territory card if player captured a territory this turn
-            if new_state.territory_captured_this_turn: 
-                new_state.player_territory_cards[new_state.current_player].append(TerritoryCard.generate_random_card(len(new_state.territory_owners)))
+            if new_state.territory_captured_this_turn:
+                if None in new_state.player_territory_cards[new_state.current_player]:
+                    empty_card_index = new_state.player_territory_cards[new_state.current_player].index(None)
+                    new_state.player_territory_cards[new_state.current_player][empty_card_index] = TerritoryCard.generate_random_card(len(new_state.territory_owners))
                 new_state.territory_captured_this_turn = False
             
             new_state.current_phase = GamePhase.DRAFT
