@@ -74,6 +74,9 @@ class DeployAction(Action):
     
     def __repr__(self):
         return f"DeployAction(territory_id={self.territory_id})"
+    
+    def __eq__(self, other):
+        return isinstance(other, DeployAction) and self.territory_id == other.territory_id
 
 class TradeAction(Action):
     def __init__(self, territory_card_indexes: list[int]):
@@ -147,6 +150,9 @@ class TradeAction(Action):
     
     def __repr__(self):
         return f"TradeAction(territory_cards={self.territory_card_indexes})"
+    
+    def __eq__(self, other):
+        return isinstance(other, TradeAction) and self.territory_card_indexes == other.territory_card_indexes
 
 class BattleAction(Action):
     def __init__(self, attacker_territory_id: int, defender_territory_id: int):
@@ -216,6 +222,9 @@ class BattleAction(Action):
     
     def __repr__(self):
         return f"BattleAction(attacker_territory_id={self.attacker_territory_id}, defender_territory_id={self.defender_territory_id})"
+    
+    def __eq__(self, other):
+        return isinstance(other, BattleAction) and self.attacker_territory_id == other.attacker_territory_id and self.defender_territory_id == other.defender_territory_id
 
 class TransferAction(Action):
     def __init__(self, troop_count: int):
@@ -254,6 +263,9 @@ class TransferAction(Action):
     
     def __repr__(self):
         return f"TransferAction(troop_count={self.troop_count})"
+
+    def __eq__(self, other):
+        return isinstance(other, TransferAction) and self.troop_count == other.troop_count
 
 class FortifyRouteAction(Action):
     def __init__(self, from_territory_id: int, to_territory_id: int,):
@@ -321,6 +333,9 @@ class FortifyRouteAction(Action):
     def __repr__(self):
         return f"FortifyRouteAction(from_territory_id={self.from_territory_id}, to_territory_id={self.to_territory_id})"
 
+    def __eq__(self, other):
+        return isinstance(other, FortifyRouteAction) and self.from_territory_id == other.from_territory_id and self.to_territory_id == other.to_territory_id
+
 class FortifyAmountAction(Action):
     def __init__(self, troop_count: int):
         self.troop_count = troop_count
@@ -358,6 +373,9 @@ class FortifyAmountAction(Action):
     
     def __repr__(self):
         return f"FortifyAmountAction(troop_count={self.troop_count})"
+    
+    def __eq__(self, other):
+        return isinstance(other, FortifyAmountAction) and self.troop_count == other.troop_count
 
 class SkipAction(Action):
     def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
@@ -412,6 +430,9 @@ class SkipAction(Action):
     
     def __repr__(self):
         return "SkipAction()"
+    
+    def __eq__(self, other):
+        return isinstance(other, SkipAction)
 
 class ActionList:
     """Store a segmented list of all available actions for a given game state."""

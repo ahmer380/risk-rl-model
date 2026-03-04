@@ -88,8 +88,8 @@ class GymRunner(gymnasium.Env):
                 shape=(len(self.game_state.active_players), 5, 2), # player_territory_cards[player_id[territory_card_index]] = [combat_arm, territory_id]
                 dtype=np.int8
             ),
-            "trade_count": gymnasium.spaces.Discrete(65536, dtype=np.uint16),
-            "deployment_troops": gymnasium.spaces.Discrete(65536, dtype=np.uint16),
+            "trade_count": gymnasium.spaces.Discrete(65535, dtype=np.uint16),
+            "deployment_troops": gymnasium.spaces.Discrete(65535, dtype=np.uint16),
             "current_territory_transfer": gymnasium.spaces.Box(
                 low=-1, 
                 high=len(self.game_state.territory_owners) - 1, 
