@@ -15,13 +15,23 @@ class Action(ABC):
     @abstractmethod
     def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
         """Return a copy of the game state resulting from applying this action to the given game state."""
-        pass
+
+    @abstractmethod
+    def encode_action(self, risk_map: RiskMap) -> int:
+        """Uniquely identify this action within the action space. Reverse of decode_action."""
+    
+    @classmethod
+    def decode_action(cls, action_index: int, risk_map: RiskMap) -> Self:
+        """Return an instance of this action corresponding to the given action index. Reverse of encode_action."""
 
     @classmethod 
     @abstractmethod
     def get_action_list(cls, game_state: GameState, risk_map: RiskMap) -> list[Self]:
         """Return a list of all valid actions of this type that can be applied to the given game state."""
-        pass
+
+    @classmethod
+    def get_max_actions(cls, risk_map: RiskMap) -> int:
+        """Return the maximum number of valid actions of this type that can be applied to any game state with the given risk map"""
 
     @classmethod
     @abstractmethod
@@ -40,12 +50,23 @@ class DeployAction(Action):
             
         return new_state
 
+    def encode_action(self, _: RiskMap) -> int:
+        return self.territory_id
+
+    @classmethod
+    def decode_action(cls, action_index: int, _: RiskMap) -> Self:
+        return cls(action_index)
+
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
         if game_state.current_phase != GamePhase.DRAFT or game_state.deployment_troops == 0:
             return []
         
         return [cls(territory_id) for territory_id in game_state.get_player_owned_territory_ids()]
+
+    @classmethod
+    def get_max_actions(cls, risk_map: RiskMap) -> int:
+        return len(risk_map.territories)
 
     @classmethod
     def get_name(cls) -> str:
@@ -74,6 +95,33 @@ class TradeAction(Action):
         new_state.trade_count += 1
 
         return new_state
+    
+    def encode_action(self, _: RiskMap) -> int:
+        i1, i2, i3 = self.territory_card_indexes
+
+        if i1 == 0 and i2 == 1 and i3 == 2: return 0
+        if i1 == 0 and i2 == 1 and i3 == 3: return 1
+        if i1 == 0 and i2 == 1 and i3 == 4: return 2
+        if i1 == 0 and i2 == 2 and i3 == 3: return 3
+        if i1 == 0 and i2 == 2 and i3 == 4: return 4
+        if i1 == 0 and i2 == 3 and i3 == 4: return 5
+        if i1 == 1 and i2 == 2 and i3 == 3: return 6
+        if i1 == 1 and i2 == 2 and i3 == 4: return 7
+        if i1 == 1 and i2 == 3 and i3 == 4: return 8
+        if i1 == 2 and i2 == 3 and i3 == 4: return 9
+
+    @classmethod
+    def decode_action(cls, action_index: int, _: RiskMap) -> Self:
+        if action_index == 0: return cls([0, 1, 2])
+        if action_index == 1: return cls([0, 1, 3])
+        if action_index == 2: return cls([0, 1, 4])
+        if action_index == 3: return cls([0, 2, 3])
+        if action_index == 4: return cls([0, 2, 4])
+        if action_index == 5: return cls([0, 3, 4])
+        if action_index == 6: return cls([1, 2, 3])
+        if action_index == 7: return cls([1, 2, 4])
+        if action_index == 8: return cls([1, 3, 4])
+        if action_index == 9: return cls([2, 3, 4])
 
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
@@ -89,6 +137,10 @@ class TradeAction(Action):
 
         return [cls(list(card_indexes)) for card_indexes in combinations(range(5), 3) if is_valid_set(card_indexes)]
     
+    @classmethod
+    def get_max_actions(cls, _: RiskMap) -> int:
+        return 10 # C(5, 3) = 10
+
     @classmethod
     def get_name(cls) -> str:
         return "TradeAction"
@@ -128,6 +180,16 @@ class BattleAction(Action):
 
         return new_state
 
+    def encode_action(self, risk_map: RiskMap) -> int:
+        return self.attacker_territory_id * len(risk_map.territories) + self.defender_territory_id
+    
+    @classmethod
+    def decode_action(cls, action_index: int, risk_map: RiskMap) -> Self:
+        attacker_territory_id = action_index // len(risk_map.territories)
+        defender_territory_id = action_index % len(risk_map.territories)
+
+        return cls(attacker_territory_id, defender_territory_id)
+
     @classmethod
     def get_action_list(cls, game_state: GameState, risk_map: RiskMap) -> list[Self]:
         if game_state.current_phase != GamePhase.ATTACK or game_state.current_territory_transfer != (-1, -1):
@@ -143,6 +205,10 @@ class BattleAction(Action):
                     actions.append(cls(attacker_id, defender_id))
         
         return actions
+    
+    @classmethod
+    def get_max_actions(cls, risk_map: RiskMap) -> int:
+        return len(risk_map.territories) * len(risk_map.territories)
     
     @classmethod
     def get_name(cls) -> str:
@@ -163,6 +229,13 @@ class TransferAction(Action):
         new_state.current_territory_transfer = (-1, -1)
         
         return new_state
+    
+    def encode_action(self, _: RiskMap) -> int:
+        return self.troop_count
+    
+    @classmethod
+    def decode_action(cls, action_index: int, _: RiskMap) -> Self:
+        return cls(action_index)
 
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
@@ -171,6 +244,10 @@ class TransferAction(Action):
         
         return [cls(troop_count) for troop_count in range(1, game_state.territory_troops[game_state.current_territory_transfer[0]])]
     
+    @classmethod
+    def get_max_actions(cls, _: RiskMap) -> int:
+        return 1000
+
     @classmethod
     def get_name(cls) -> str:
         return "TransferAction"
@@ -189,6 +266,16 @@ class FortifyRouteAction(Action):
         new_state.current_fortify_route = (self.from_territory_id, self.to_territory_id)
 
         return new_state
+    
+    def encode_action(self, risk_map: RiskMap) -> int:
+        return self.from_territory_id * len(risk_map.territories) + self.to_territory_id
+    
+    @classmethod
+    def decode_action(cls, action_index: int, risk_map: RiskMap) -> Self:
+        from_territory_id = action_index // len(risk_map.territories)
+        to_territory_id = action_index % len(risk_map.territories)
+
+        return cls(from_territory_id, to_territory_id)
 
     @classmethod
     def get_action_list(cls, game_state: GameState, risk_map: RiskMap) -> list[Self]:
@@ -222,6 +309,10 @@ class FortifyRouteAction(Action):
             visited |= connected_territories
 
         return actions
+
+    @classmethod
+    def get_max_actions(cls, risk_map: RiskMap) -> int:
+        return len(risk_map.territories) * len(risk_map.territories)
     
     @classmethod
     def get_name(cls) -> str:
@@ -242,6 +333,13 @@ class FortifyAmountAction(Action):
         new_state.current_fortify_route = (-1, -1)
         
         return SkipAction().apply(new_state, risk_map) # Skip to end turn after fortifying
+    
+    def encode_action(self, _: RiskMap) -> int:
+        return self.troop_count
+    
+    @classmethod
+    def decode_action(cls, action_index: int, _: RiskMap) -> Self:
+        return cls(action_index)
 
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
@@ -253,6 +351,10 @@ class FortifyAmountAction(Action):
     @classmethod
     def get_name(cls) -> str:
         return "FortifyAmountAction"
+    
+    @classmethod
+    def get_max_actions(cls, _: RiskMap) -> int:
+        return 1000
     
     def __repr__(self):
         return f"FortifyAmountAction(troop_count={self.troop_count})"
@@ -286,12 +388,23 @@ class SkipAction(Action):
 
         return new_state
     
+    def encode_action(self, _: RiskMap) -> int:
+        return 0
+    
+    @classmethod
+    def decode_action(cls, _action_index: int, _risk_map: RiskMap) -> Self:
+        return cls()
+    
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
         if game_state.deployment_troops > 0 or game_state.current_territory_transfer != (-1, -1) or game_state.current_fortify_route != (-1, -1):
             return []
         
         return [cls()]
+    
+    @classmethod
+    def get_max_actions(cls, _: RiskMap) -> int:
+        return 1
     
     @classmethod
     def get_name(cls) -> str:
