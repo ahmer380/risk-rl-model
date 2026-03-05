@@ -1,7 +1,7 @@
 import unittest
 
 from src.environment.actions import BattleAction, TransferAction
-from src.environment.game_state import GameState
+from src.environment.game_state import GameState, GamePhase
 from src.environment.map import RiskMap
 
 from src.observers.battle_observer import BattleObserver
@@ -14,6 +14,8 @@ class TestBattleObserver(unittest.TestCase):
         self.num_players = 2
         self.game_state = GameState(self.num_players, len(self.classic_map.territories), True)
         self.battle_observer = BattleObserver(CoreObserver(self.classic_map, [PlayerTelemetry(i) for i in range(self.num_players)]))
+
+        self.game_state.current_phase = GamePhase.ATTACK
 
         # Statically define territory ownership and troop counts to ensure consistent test results
         self.game_state.territory_owners = [1] * len(self.classic_map.territories)

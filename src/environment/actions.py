@@ -15,6 +15,10 @@ class Action(ABC):
     @abstractmethod
     def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
         """Return a copy of the game state resulting from applying this action to the given game state."""
+    
+    @abstractmethod
+    def validate_action(self, game_state: GameState, risk_map: RiskMap):
+        """Perform a series of assertions to confirm the validity of an action for the given game state"""
 
     @abstractmethod
     def encode_action(self, risk_map: RiskMap) -> int:
@@ -43,12 +47,18 @@ class DeployAction(Action):
         self.territory_id = territory_id
     
     def apply(self, game_state: GameState, _: RiskMap) -> GameState:
+        self.validate_action(game_state, _)
         new_state = game_state.copy()
 
         new_state.territory_troops[self.territory_id] += 1
         new_state.deployment_troops -= 1
             
         return new_state
+    
+    def validate_action(self, game_state: GameState, _: RiskMap):
+        assert game_state.current_phase == GamePhase.DRAFT, "Can only apply DeployAction during draft phase"
+        assert game_state.deployment_troops > 0, "No deployment troops remaining"
+        assert game_state.territory_owners[self.territory_id] == game_state.current_player, "Can only deploy to your own territories"
 
     def encode_action(self, _: RiskMap) -> int:
         return self.territory_id
@@ -80,10 +90,10 @@ class DeployAction(Action):
 
 class TradeAction(Action):
     def __init__(self, territory_card_indexes: list[int]):
-        assert len(territory_card_indexes) == 3, "Must trade exactly 3 cards"
         self.territory_card_indexes = sorted(territory_card_indexes)
     
     def apply(self, game_state: GameState, _: RiskMap) -> GameState:
+        self.validate_action(game_state, _)
         new_state = game_state.copy()
 
         for territory_card_index in self.territory_card_indexes:
@@ -99,6 +109,11 @@ class TradeAction(Action):
 
         return new_state
     
+    def validate_action(self, game_state: GameState, _: RiskMap):
+        assert game_state.current_phase == GamePhase.DRAFT, "Can only apply TradeAction during draft phase"
+        assert len(self.territory_card_indexes) == 3, "Must trade exactly 3 cards"
+        assert self.is_valid_set(game_state, tuple(self.territory_card_indexes)), "Invalid set of cards to trade"
+
     def encode_action(self, _: RiskMap) -> int:
         i1, i2, i3 = self.territory_card_indexes
 
@@ -131,14 +146,15 @@ class TradeAction(Action):
         if game_state.current_phase != GamePhase.DRAFT: 
             return []
 
-        def is_valid_set(card_indexes: tuple[int, int, int]) -> bool:
-            if any(game_state.player_territory_cards[game_state.current_player][card_index] is None for card_index in card_indexes):
-                return False
-            
-            combat_arms = {game_state.player_territory_cards[game_state.current_player][card_index].combat_arm for card_index in card_indexes}
-            return CombatArm.WILD in combat_arms or len(combat_arms) == 1 or len(combat_arms) == 3
-
-        return [cls(list(card_indexes)) for card_indexes in combinations(range(5), 3) if is_valid_set(card_indexes)]
+        return [cls(list(card_indexes)) for card_indexes in combinations(range(5), 3) if cls.is_valid_set(game_state, card_indexes)]
+    
+    @classmethod
+    def is_valid_set(cls, game_state: GameState, card_indexes: tuple[int, int, int]) -> bool:
+        if any(game_state.player_territory_cards[game_state.current_player][card_index] is None for card_index in card_indexes):
+            return False
+        
+        combat_arms = {game_state.player_territory_cards[game_state.current_player][card_index].combat_arm for card_index in card_indexes}
+        return CombatArm.WILD in combat_arms or len(combat_arms) == 1 or len(combat_arms) == 3
     
     @classmethod
     def get_max_actions(cls, _: RiskMap) -> int:
@@ -159,7 +175,8 @@ class BattleAction(Action):
         self.attacker_territory_id = attacker_territory_id
         self.defender_territory_id = defender_territory_id
     
-    def apply(self, game_state: GameState, _: RiskMap) -> GameState:
+    def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
+        self.validate_action(game_state, risk_map)
         new_state = game_state.copy()
 
         remaining_attacker_troops, remaining_defender_troops = battle_simulator.simulate_battle(game_state.territory_troops[self.attacker_territory_id], game_state.territory_troops[self.defender_territory_id])
@@ -185,6 +202,14 @@ class BattleAction(Action):
                 new_state.player_territory_cards[previous_territory_owner] = [None] * 5
 
         return new_state
+    
+    def validate_action(self, game_state: GameState, risk_map: RiskMap):
+        assert game_state.current_phase == GamePhase.ATTACK, "Can only apply BattleAction during attack phase"
+        assert game_state.current_territory_transfer == (-1, -1), "Must resolve previous territory transfer before attacking again"
+        assert game_state.territory_owners[self.attacker_territory_id] == game_state.current_player, "Attacking territory must be owned by current player"
+        assert game_state.territory_owners[self.defender_territory_id] != game_state.current_player, "Defending territory cannot be owned by current player"
+        assert self.defender_territory_id in risk_map.get_border_ids(self.attacker_territory_id), "Attacking and defending territories must be bordering"
+        assert game_state.territory_troops[self.attacker_territory_id] >= 2, "Attacking territory must have at least 2 troops to attack"
 
     def encode_action(self, risk_map: RiskMap) -> int:
         return self.attacker_territory_id * len(risk_map.territories) + self.defender_territory_id
@@ -231,6 +256,7 @@ class TransferAction(Action):
         self.troop_count = troop_count
     
     def apply(self, game_state: GameState, _: RiskMap) -> GameState:
+        self.validate_action(game_state, _)
         new_state = game_state.copy()
 
         new_state.territory_troops[new_state.current_territory_transfer[0]] -= self.troop_count
@@ -238,6 +264,11 @@ class TransferAction(Action):
         new_state.current_territory_transfer = (-1, -1)
         
         return new_state
+    
+    def validate_action(self, game_state: GameState, _: RiskMap):
+        assert game_state.current_phase == GamePhase.ATTACK, "Can only apply TransferAction during attack phase"
+        assert game_state.current_territory_transfer != (-1, -1), "No territory transfer to resolve"
+        assert 0 < self.troop_count < game_state.territory_troops[game_state.current_territory_transfer[0]], "Invalid troop count to transfer"
     
     def encode_action(self, _: RiskMap) -> int:
         return self.troop_count
@@ -272,12 +303,21 @@ class FortifyRouteAction(Action):
         self.from_territory_id = from_territory_id
         self.to_territory_id = to_territory_id
     
-    def apply(self, game_state: GameState, _: RiskMap) -> GameState:
+    def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
+        self.validate_action(game_state, risk_map)
         new_state = game_state.copy()
 
         new_state.current_fortify_route = (self.from_territory_id, self.to_territory_id)
 
         return new_state
+    
+    def validate_action(self, game_state: GameState, risk_map: RiskMap):
+        assert game_state.current_phase == GamePhase.FORTIFY, "Can only apply FortifyRouteAction during fortify phase"
+        assert game_state.current_fortify_route == (-1, -1), "Must resolve previous fortify route before fortifying again"
+        assert game_state.territory_owners[self.from_territory_id] == game_state.current_player, "From territory must be owned by current player"
+        assert game_state.territory_owners[self.to_territory_id] == game_state.current_player, "To territory must be owned by current player"
+        assert self.to_territory_id in self.get_connected_territories(game_state, risk_map, self.from_territory_id, set()), "From and to territories must be connected"
+        assert game_state.territory_troops[self.from_territory_id] > 1, "From territory must have at least 2 troops to fortify"
     
     def encode_action(self, risk_map: RiskMap) -> int:
         return self.from_territory_id * len(risk_map.territories) + self.to_territory_id
@@ -295,22 +335,12 @@ class FortifyRouteAction(Action):
             return []
         
         visited: set[int] = set()
-        def get_connected_territories(territory_id) -> set[int]:
-            visited.add(territory_id)
-            connected_territories = {territory_id}
-            for border_id in risk_map.get_border_ids(territory_id):
-                if border_id not in visited and game_state.territory_owners[border_id] == game_state.current_player:
-                    connected_territories |= get_connected_territories(border_id)
-
-            return connected_territories
-
-        visited.clear()
         actions = []
         for territory_id in game_state.get_player_owned_territory_ids():
             if territory_id in visited:
                 continue
 
-            connected_territories = get_connected_territories(territory_id)
+            connected_territories = cls.get_connected_territories(game_state, risk_map, territory_id, visited)
 
             for from_territory_id in connected_territories:
                 for to_territory_id in connected_territories:
@@ -321,6 +351,16 @@ class FortifyRouteAction(Action):
             visited |= connected_territories
 
         return actions
+    
+    @classmethod
+    def get_connected_territories(cls, game_state: GameState, risk_map: RiskMap, territory_id: int, visited: set[int]) -> set[int]:
+        visited.add(territory_id)
+        connected_territories = {territory_id}
+        for border_id in risk_map.get_border_ids(territory_id):
+            if border_id not in visited and game_state.territory_owners[border_id] == game_state.current_player:
+                connected_territories |= cls.get_connected_territories(game_state, risk_map, border_id, visited)
+
+        return connected_territories
 
     @classmethod
     def get_max_actions(cls, risk_map: RiskMap) -> int:
@@ -341,6 +381,7 @@ class FortifyAmountAction(Action):
         self.troop_count = troop_count
     
     def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
+        self.validate_action(game_state, risk_map)
         new_state = game_state.copy()
 
         new_state.territory_troops[new_state.current_fortify_route[1]] += self.troop_count
@@ -348,6 +389,11 @@ class FortifyAmountAction(Action):
         new_state.current_fortify_route = (-1, -1)
         
         return SkipAction().apply(new_state, risk_map) # Skip to end turn after fortifying
+    
+    def validate_action(self, game_state: GameState, _: RiskMap):
+        assert game_state.current_phase == GamePhase.FORTIFY, "Can only apply FortifyAmountAction during fortify phase"
+        assert game_state.current_fortify_route != (-1, -1), "No fortify route to resolve"
+        assert 0 < self.troop_count < game_state.territory_troops[game_state.current_fortify_route[0]], "Invalid troop count to fortify"
     
     def encode_action(self, _: RiskMap) -> int:
         return self.troop_count
@@ -379,6 +425,7 @@ class FortifyAmountAction(Action):
 
 class SkipAction(Action):
     def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
+        self.validate_action(game_state, risk_map)
         new_state = game_state.copy()
 
         if new_state.current_phase == GamePhase.DRAFT:
@@ -405,6 +452,14 @@ class SkipAction(Action):
                     new_state.deployment_troops += continent.bonus
 
         return new_state
+    
+    def validate_action(self, game_state: GameState, _: RiskMap):
+        if game_state.current_phase == GamePhase.DRAFT:
+            assert game_state.deployment_troops == 0, "Must deploy all troops before skipping"
+        elif game_state.current_phase == GamePhase.ATTACK:
+            assert game_state.current_territory_transfer == (-1, -1), "Must resolve territory transfer before skipping"
+        elif game_state.current_phase == GamePhase.FORTIFY:
+            assert game_state.current_fortify_route == (-1, -1), "Must resolve fortify route before skipping"
     
     def encode_action(self, _: RiskMap) -> int:
         return 0
@@ -513,4 +568,3 @@ class ActionList:
     
     def flatten(self) -> list[Action]:
         return self.deploy_actions + self.trade_actions + self.battle_actions + self.transfer_actions + self.fortify_route_actions + self.fortify_amount_actions + self.skip_actions
-    

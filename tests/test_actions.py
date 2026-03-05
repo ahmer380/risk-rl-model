@@ -21,6 +21,7 @@ class TestDeployAction(TestAction):
         
         deployments_set = set()
         for action in actions:
+            action.validate_action(self.game_state, self.classic_map)
             self.assertIn(action.territory_id, player_owned_territory_ids)
             self.assertNotIn(action.territory_id, deployments_set) # ensure no duplicate actions
             deployments_set.add(action.territory_id)
@@ -31,6 +32,7 @@ class TestDeployAction(TestAction):
         self.assertEqual(len(actions), 0)
     
     def test_apply_deploy_action(self):
+        self.game_state.territory_owners[0] = 0
         action = DeployAction(0)
         new_state = action.apply(self.game_state, self.classic_map)
 
@@ -59,6 +61,8 @@ class TestTradeAction(TestAction):
         self.assertTrue(any(action.territory_card_indexes == [0, 1, 3] for action in actions)) # 3 different cards
         self.assertTrue(any(action.territory_card_indexes == [1, 2, 3] for action in actions)) # 3 different cards
         self.assertTrue(any(action.territory_card_indexes == [0, 2, 3] for action in actions)) # 3 cards of the same type
+        for action in actions:
+            action.validate_action(self.game_state, self.classic_map)
     
     def test_get_trade_action_list_for_non_draft_phase(self):
         self.game_state.current_phase = GamePhase.ATTACK
@@ -73,12 +77,12 @@ class TestTradeAction(TestAction):
             TerritoryCard(CombatArm.WILD, 0),
             None
         ]
-        action = TradeAction([0, 1, 2])
+        action = TradeAction([0, 1, 3])
         new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertEqual(len(new_state.player_territory_cards[0]), 5)
         self.assertEqual(sum(1 for card in new_state.player_territory_cards[0] if card is not None), 1) # Ensure only 1 card remains
-        self.assertEqual(new_state.player_territory_cards[0][0], tc[3])
+        self.assertEqual(new_state.player_territory_cards[0][0], tc[2])
         self.assertEqual(new_state.deployment_troops, self.game_state.deployment_troops + 4) # First trade-in should give 4 troops 
 
 class TestBattleAction(TestAction):
@@ -103,6 +107,8 @@ class TestBattleAction(TestAction):
         self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alberta" and self.classic_map.territories[action.defender_territory_id].name == "Northwest Territory" for action in actions))
         self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alberta" and self.classic_map.territories[action.defender_territory_id].name == "Ontario" for action in actions))
         self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alberta" and self.classic_map.territories[action.defender_territory_id].name == "Western United States" for action in actions))
+        for action in actions:
+            action.validate_action(self.game_state, self.classic_map)
     
     def test_get_battle_action_list_for_non_attack_phase(self):
         self.game_state.current_phase = GamePhase.FORTIFY
@@ -171,6 +177,7 @@ class TestTransferAction(TestAction):
         
         self.assertEqual(len(actions), 6)
         for i, action in enumerate(actions):
+            action.validate_action(self.game_state, self.classic_map)
             self.assertEqual(action.troop_count, i + 1)
     
     def test_get_transfer_action_list_while_no_territory_transfer_pending(self):
@@ -203,6 +210,8 @@ class TestFortifyRouteAction(TestAction):
     def test_get_fortify_route_action_list(self):
         actions = FortifyRouteAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 1344) # Rest of world C.C + Australia C.C = (37 * 36) + (4 * 3) = 1344
+        for action in actions:
+            action.validate_action(self.game_state, self.classic_map)
     
     def test_get_fortify_route_action_list_for_insufficient_troop_counts(self):
         self.game_state.territory_troops = [1] * len(self.game_state.territory_troops)
@@ -242,6 +251,9 @@ class TestFortifyAmountAction(TestAction):
     def test_get_fortify_amount_action_list(self):
         actions = FortifyAmountAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 4)
+        for i, action in enumerate(actions):
+            action.validate_action(self.game_state, self.classic_map)
+            self.assertEqual(action.troop_count, i + 1)
     
     def test_get_fortify_amount_action_list_while_no_fortify_route_pending(self):
         self.game_state.current_fortify_route = (-1, -1)
@@ -271,6 +283,7 @@ class TestSkipAction(TestAction):
     def test_get_skip_action_list(self):
         actions = SkipAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 1)
+        actions[0].validate_action(self.game_state, self.classic_map)
 
     def test_get_skip_action_list_for_initial_state(self):
         self.game_state.reset_to_initial_state()
@@ -290,7 +303,8 @@ class TestSkipAction(TestAction):
     
     def test_apply_skip_action_in_draft_phase(self):
         self.game_state.reset_to_initial_state()
-        new_state = SkipAction().apply(DeployAction(0).apply(self.game_state, self.classic_map), self.classic_map)
+        self.game_state.deployment_troops = 0
+        new_state = SkipAction().apply(self.game_state, self.classic_map)
         self.assertEqual(new_state.current_phase, GamePhase.ATTACK)
         self.assertEqual(new_state.current_player, 0)
     
