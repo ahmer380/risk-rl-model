@@ -1,5 +1,7 @@
 import unittest
 
+import numpy as np
+
 from src.agents.agent import RandomAgent, AdvantageAttackAgent
 
 from src.environment.actions import DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
@@ -13,7 +15,8 @@ class TestGymRunner(unittest.TestCase):
         self.num_players = 6
         self.classic_map = RiskMap.from_json("maps/classic.json")
         self.runner = GymRunner(self.classic_map, [RLAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)])
-    
+
+class TestGymRunnerInitialisation(TestGymRunner):    
     def test_max_actions(self):
         self.assertEqual(DeployAction.get_max_actions(self.classic_map), 42)
         self.assertEqual(TradeAction.get_max_actions(self.classic_map), 10)
@@ -23,6 +26,42 @@ class TestGymRunner(unittest.TestCase):
         self.assertEqual(FortifyAmountAction.get_max_actions(self.classic_map), 1000)
         self.assertEqual(SkipAction.get_max_actions(self.classic_map), 1)
         self.assertEqual(self.runner.get_max_actions(), 5581)
+        self.assertEqual(self.runner.action_space.n, 5581)
+    
+    def test_initial_state_observation(self):
+        observation = self.runner.encode_observation()
+
+        np.testing.assert_array_equal(observation['active_players'], np.array([True, True, True, True, True, True]))
+        np.testing.assert_equal(observation['current_player'], 0)
+        np.testing.assert_equal(observation['current_phase'], 0)
+        np.testing.assert_array_equal(observation['player_territory_cards'], np.array(
+            [[[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]],
+             [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]],
+             [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]],
+             [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]],
+             [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]],
+             [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]],
+        ))
+        np.testing.assert_equal(observation['trade_count'], 0)
+        np.testing.assert_array_equal(observation['current_territory_transfer'], np.array([-1, -1]))
+        np.testing.assert_array_equal(observation['current_fortify_route'], np.array([-1, -1]))
+        np.testing.assert_array_equal(observation['territory_captured_this_turn'], np.array([False]))
+        np.testing.assert_equal(observation['deployment_troops'], 3)
+
+        self.assertEqual(np.shape(observation['territory_owners']), (42,))
+        self.assertEqual(np.shape(observation['territory_troops']), (42,))
+        self.assertTrue(all(0 <= owner < self.num_players for owner in observation['territory_owners'])) # all territories owned
+        self.assertTrue(all(troops >= 1 for troops in observation['territory_troops'])) # all territories have at least 1 troop
+
+        territories_per_player = [0] * self.num_players
+        troops_per_player = [0] * self.num_players
+        for territory_i in range(len(observation['territory_owners'])):
+            owner = observation['territory_owners'][territory_i]
+            territories_per_player[owner] += 1
+            troops_per_player[owner] += observation['territory_troops'][territory_i]
+
+        self.assertLessEqual(max(territories_per_player) - min(territories_per_player), 1) # approx equal territories
+        self.assertTrue(all(troops == troops_per_player[0] for troops in troops_per_player)) # equal troops
 
 class TestEncodeAndDecodeActions(TestGymRunner):
     def test_encode_and_decode_deploy_action(self):

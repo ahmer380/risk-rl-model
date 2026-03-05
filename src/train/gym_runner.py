@@ -26,7 +26,7 @@ class GymRunner(gymnasium.Env):
         self.game_state = GameState(len(agents), len(risk_map.territories), reset_to_initial_state=True)
 
         self.observation_space = self.get_observation_space()
-        self.action_space = gymnasium.spaces.Discrete(self.get_max_actions())
+        self.action_space = gymnasium.spaces.Discrete(self.get_max_actions(), dtype=np.uint16)
 
     def reset(self, seed: int=None):
         super().reset(seed=seed)
@@ -36,8 +36,8 @@ class GymRunner(gymnasium.Env):
 
         self.episode_length = 0
         self.game_state.reset_to_initial_state()
-        self.advance_to_rl_turn(self.game_state)
-        observation = self.encode_observation(self.game_state)
+        self.advance_to_rl_turn()
+        observation = self.encode_observation()
         info = {}
 
         return observation, info
