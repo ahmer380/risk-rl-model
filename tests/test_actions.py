@@ -180,6 +180,15 @@ class TestTransferAction(TestAction):
             action.validate_action(self.game_state, self.classic_map)
             self.assertEqual(action.troop_count, i + 1)
     
+    def test_get_transfer_action_list_for_over_max_troop_count(self):
+        self.game_state.territory_troops[0] = 150
+        actions = TransferAction.get_action_list(self.game_state, self.classic_map)
+        
+        self.assertEqual(len(actions), 100)
+        for i, action in enumerate(actions):
+            action.validate_action(self.game_state, self.classic_map)
+            self.assertEqual(action.troop_count, i + 1)
+    
     def test_get_transfer_action_list_while_no_territory_transfer_pending(self):
         self.game_state.current_territory_transfer = (-1, -1)
         actions = TransferAction.get_action_list(self.game_state, self.classic_map)
@@ -196,6 +205,15 @@ class TestTransferAction(TestAction):
 
         self.assertEqual(new_state.territory_troops[0], 4)
         self.assertEqual(new_state.territory_troops[5], 3)
+        self.assertEqual(new_state.current_territory_transfer, (-1, -1))
+    
+    def test_apply_max_transfer_action(self):
+        self.game_state.territory_troops[0] = 150
+        action = TransferAction(100)
+        new_state = action.apply(self.game_state, self.classic_map)
+
+        self.assertEqual(new_state.territory_troops[0], 1)
+        self.assertEqual(new_state.territory_troops[5], 149)
         self.assertEqual(new_state.current_territory_transfer, (-1, -1))
 
 class TestFortifyRouteAction(TestAction):
@@ -255,6 +273,14 @@ class TestFortifyAmountAction(TestAction):
             action.validate_action(self.game_state, self.classic_map)
             self.assertEqual(action.troop_count, i + 1)
     
+    def test_get_fortify_amount_action_list_for_over_max_troop_count(self):
+        self.game_state.territory_troops[0] = 150
+        actions = FortifyAmountAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 100)
+        for i, action in enumerate(actions):
+            action.validate_action(self.game_state, self.classic_map)
+            self.assertEqual(action.troop_count, i + 1)
+    
     def test_get_fortify_amount_action_list_while_no_fortify_route_pending(self):
         self.game_state.current_fortify_route = (-1, -1)
         actions = FortifyAmountAction.get_action_list(self.game_state, self.classic_map)
@@ -271,6 +297,16 @@ class TestFortifyAmountAction(TestAction):
 
         self.assertEqual(new_state.territory_troops[0], 2)
         self.assertEqual(new_state.territory_troops[1], 8)
+        self.assertEqual(new_state.current_phase, GamePhase.DRAFT)
+        self.assertEqual(new_state.current_player, 1)
+    
+    def test_apply_max_fortify_amount_action(self):
+        self.game_state.territory_troops[0] = 150
+        action = FortifyAmountAction(100)
+        new_state = action.apply(self.game_state, self.classic_map)
+
+        self.assertEqual(new_state.territory_troops[0], 1)
+        self.assertEqual(new_state.territory_troops[1], 154)
         self.assertEqual(new_state.current_phase, GamePhase.DRAFT)
         self.assertEqual(new_state.current_player, 1)
 

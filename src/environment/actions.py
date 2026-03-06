@@ -11,6 +11,9 @@ from src.blitz_battle_simulator.blitz_battle_simulator import BlitzBattleSimulat
 
 battle_simulator = BlitzBattleSimulator()
 
+MAX_TROOP_TRANSFER = 100 # Arbitrary cap on troop transfer/fortifyAmount actions. If 100, then transfer the maximum possible troops.
+# TODO: Rework as percentage for all values? or some? (50%, 25% etc.)
+
 class Action(ABC):    
     @abstractmethod
     def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
@@ -55,10 +58,11 @@ class DeployAction(Action):
             
         return new_state
     
-    def validate_action(self, game_state: GameState, _: RiskMap):
+    def validate_action(self, game_state: GameState, risk_map: RiskMap):
         assert game_state.current_phase == GamePhase.DRAFT, "Can only apply DeployAction during draft phase"
         assert game_state.deployment_troops > 0, "No deployment troops remaining"
         assert game_state.territory_owners[self.territory_id] == game_state.current_player, "Can only deploy to your own territories"
+        assert 0 <= self.encode_action(risk_map) < self.get_max_actions(risk_map), "Encoded action index out of bounds"
 
     def encode_action(self, _: RiskMap) -> int:
         return self.territory_id
@@ -109,10 +113,11 @@ class TradeAction(Action):
 
         return new_state
     
-    def validate_action(self, game_state: GameState, _: RiskMap):
+    def validate_action(self, game_state: GameState, risk_map: RiskMap):
         assert game_state.current_phase == GamePhase.DRAFT, "Can only apply TradeAction during draft phase"
         assert len(self.territory_card_indexes) == 3, "Must trade exactly 3 cards"
         assert self.is_valid_set(game_state, tuple(self.territory_card_indexes)), "Invalid set of cards to trade"
+        assert 0 <= self.encode_action(risk_map) < self.get_max_actions(risk_map), "Encoded action index out of bounds"
 
     def encode_action(self, _: RiskMap) -> int:
         i1, i2, i3 = self.territory_card_indexes
@@ -210,6 +215,7 @@ class BattleAction(Action):
         assert game_state.territory_owners[self.defender_territory_id] != game_state.current_player, "Defending territory cannot be owned by current player"
         assert self.defender_territory_id in risk_map.get_border_ids(self.attacker_territory_id), "Attacking and defending territories must be bordering"
         assert game_state.territory_troops[self.attacker_territory_id] >= 2, "Attacking territory must have at least 2 troops to attack"
+        assert 0 <= self.encode_action(risk_map) < self.get_max_actions(risk_map), "Encoded action index out of bounds"
 
     def encode_action(self, risk_map: RiskMap) -> int:
         return self.attacker_territory_id * len(risk_map.territories) + self.defender_territory_id
@@ -259,16 +265,22 @@ class TransferAction(Action):
         self.validate_action(game_state, _)
         new_state = game_state.copy()
 
-        new_state.territory_troops[new_state.current_territory_transfer[0]] -= self.troop_count
-        new_state.territory_troops[new_state.current_territory_transfer[1]] += self.troop_count
+        if self.troop_count == MAX_TROOP_TRANSFER:
+            troops_to_transfer = new_state.territory_troops[new_state.current_territory_transfer[0]] - 1
+        else:
+            troops_to_transfer = self.troop_count
+        
+        new_state.territory_troops[new_state.current_territory_transfer[0]] -= troops_to_transfer
+        new_state.territory_troops[new_state.current_territory_transfer[1]] += troops_to_transfer
         new_state.current_territory_transfer = (-1, -1)
         
         return new_state
     
-    def validate_action(self, game_state: GameState, _: RiskMap):
+    def validate_action(self, game_state: GameState, risk_map: RiskMap):
         assert game_state.current_phase == GamePhase.ATTACK, "Can only apply TransferAction during attack phase"
         assert game_state.current_territory_transfer != (-1, -1), "No territory transfer to resolve"
         assert 0 < self.troop_count < game_state.territory_troops[game_state.current_territory_transfer[0]], "Invalid troop count to transfer"
+        assert 0 <= self.encode_action(risk_map) < self.get_max_actions(risk_map), "Encoded action index out of bounds"
     
     def encode_action(self, _: RiskMap) -> int:
         return self.troop_count
@@ -282,11 +294,11 @@ class TransferAction(Action):
         if game_state.current_phase != GamePhase.ATTACK or game_state.current_territory_transfer == (-1, -1):
             return []
         
-        return [cls(troop_count) for troop_count in range(1, game_state.territory_troops[game_state.current_territory_transfer[0]])]
+        return [cls(troop_count) for troop_count in range(1, min(MAX_TROOP_TRANSFER + 1, game_state.territory_troops[game_state.current_territory_transfer[0]]))]
     
     @classmethod
     def get_max_actions(cls, _: RiskMap) -> int:
-        return 1000
+        return MAX_TROOP_TRANSFER + 1 # 0-100 inclusive (although 0 is an invalid action)
 
     @classmethod
     def get_name(cls) -> str:
@@ -318,6 +330,7 @@ class FortifyRouteAction(Action):
         assert game_state.territory_owners[self.to_territory_id] == game_state.current_player, "To territory must be owned by current player"
         assert self.to_territory_id in self.get_connected_territories(game_state, risk_map, self.from_territory_id, set()), "From and to territories must be connected"
         assert game_state.territory_troops[self.from_territory_id] > 1, "From territory must have at least 2 troops to fortify"
+        assert 0 <= self.encode_action(risk_map) < self.get_max_actions(risk_map), "Encoded action index out of bounds"
     
     def encode_action(self, risk_map: RiskMap) -> int:
         return self.from_territory_id * len(risk_map.territories) + self.to_territory_id
@@ -384,16 +397,22 @@ class FortifyAmountAction(Action):
         self.validate_action(game_state, risk_map)
         new_state = game_state.copy()
 
-        new_state.territory_troops[new_state.current_fortify_route[1]] += self.troop_count
-        new_state.territory_troops[new_state.current_fortify_route[0]] -= self.troop_count
+        if self.troop_count == MAX_TROOP_TRANSFER:
+            troops_to_fortify = new_state.territory_troops[new_state.current_fortify_route[0]] - 1
+        else:
+            troops_to_fortify = self.troop_count
+
+        new_state.territory_troops[new_state.current_fortify_route[1]] += troops_to_fortify
+        new_state.territory_troops[new_state.current_fortify_route[0]] -= troops_to_fortify
         new_state.current_fortify_route = (-1, -1)
         
         return SkipAction().apply(new_state, risk_map) # Skip to end turn after fortifying
     
-    def validate_action(self, game_state: GameState, _: RiskMap):
+    def validate_action(self, game_state: GameState, risk_map: RiskMap):
         assert game_state.current_phase == GamePhase.FORTIFY, "Can only apply FortifyAmountAction during fortify phase"
         assert game_state.current_fortify_route != (-1, -1), "No fortify route to resolve"
         assert 0 < self.troop_count < game_state.territory_troops[game_state.current_fortify_route[0]], "Invalid troop count to fortify"
+        assert 0 <= self.encode_action(risk_map) < self.get_max_actions(risk_map), "Encoded action index out of bounds"
     
     def encode_action(self, _: RiskMap) -> int:
         return self.troop_count
@@ -407,7 +426,7 @@ class FortifyAmountAction(Action):
         if game_state.current_phase != GamePhase.FORTIFY or game_state.current_fortify_route == (-1, -1):
             return []
         
-        return [cls(troop_count) for troop_count in range(1, game_state.territory_troops[game_state.current_fortify_route[0]])]
+        return [cls(troop_count) for troop_count in range(1, min(MAX_TROOP_TRANSFER + 1, game_state.territory_troops[game_state.current_fortify_route[0]]))]
     
     @classmethod
     def get_name(cls) -> str:
@@ -415,7 +434,7 @@ class FortifyAmountAction(Action):
     
     @classmethod
     def get_max_actions(cls, _: RiskMap) -> int:
-        return 1000
+        return MAX_TROOP_TRANSFER + 1 # 0-100 inclusive (although 0 is an invalid action)
     
     def __repr__(self):
         return f"FortifyAmountAction(troop_count={self.troop_count})"
@@ -453,13 +472,14 @@ class SkipAction(Action):
 
         return new_state
     
-    def validate_action(self, game_state: GameState, _: RiskMap):
+    def validate_action(self, game_state: GameState, risk_map: RiskMap):
         if game_state.current_phase == GamePhase.DRAFT:
             assert game_state.deployment_troops == 0, "Must deploy all troops before skipping"
         elif game_state.current_phase == GamePhase.ATTACK:
             assert game_state.current_territory_transfer == (-1, -1), "Must resolve territory transfer before skipping"
         elif game_state.current_phase == GamePhase.FORTIFY:
             assert game_state.current_fortify_route == (-1, -1), "Must resolve fortify route before skipping"
+        assert 0 <= self.encode_action(risk_map) < self.get_max_actions(risk_map), "Encoded action index out of bounds"
     
     def encode_action(self, _: RiskMap) -> int:
         return 0

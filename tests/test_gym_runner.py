@@ -21,12 +21,12 @@ class TestGymRunnerInitialisation(TestGymRunner):
         self.assertEqual(DeployAction.get_max_actions(self.classic_map), 42)
         self.assertEqual(TradeAction.get_max_actions(self.classic_map), 10)
         self.assertEqual(BattleAction.get_max_actions(self.classic_map), 1764)
-        self.assertEqual(TransferAction.get_max_actions(self.classic_map), 1000)
+        self.assertEqual(TransferAction.get_max_actions(self.classic_map), 101)
         self.assertEqual(FortifyRouteAction.get_max_actions(self.classic_map), 1764)
-        self.assertEqual(FortifyAmountAction.get_max_actions(self.classic_map), 1000)
+        self.assertEqual(FortifyAmountAction.get_max_actions(self.classic_map), 101)
         self.assertEqual(SkipAction.get_max_actions(self.classic_map), 1)
-        self.assertEqual(self.runner.get_max_actions(), 5581)
-        self.assertEqual(self.runner.action_space.n, 5581)
+        self.assertEqual(self.runner.get_max_actions(), 3783)
+        self.assertEqual(self.runner.action_space.n, 3783)
     
     def test_initial_state_observation(self):
         observation = self.runner.encode_observation()
@@ -95,14 +95,14 @@ class TestEncodeAndDecodeActions(TestGymRunner):
     def test_encode_and_decode_fortify_route_action(self):
         fortify_route_action = FortifyRouteAction(3, 31)
         encoded = self.runner.encode_action(fortify_route_action)
-        self.assertEqual(encoded, 42 + 10 + 1764 + 1000 + 157)
+        self.assertEqual(encoded, 42 + 10 + 1764 + 101 + 157)
         decoded = self.runner.decode_action(encoded)
         self.assertEqual(decoded, fortify_route_action)
     
     def test_encode_and_decode_fortify_amount_action(self):
         fortify_amount_action = FortifyAmountAction(1)
         encoded = self.runner.encode_action(fortify_amount_action)
-        self.assertEqual(encoded, 42 + 10 + 1764 + 1000 + 1764 + 1)
+        self.assertEqual(encoded, 42 + 10 + 1764 + 101 + 1764 + 1)
         decoded = self.runner.decode_action(encoded)
         self.assertEqual(decoded, fortify_amount_action)
     
