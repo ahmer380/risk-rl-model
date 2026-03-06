@@ -35,7 +35,7 @@ class GameState:
     current_phase: GamePhase
     territory_owners: list[int] # Owner player index for each territory
     territory_troops: list[int] # Number of troops in each territory
-    player_territory_cards: list[list[TerritoryCard]] # List of territory cards owned by each player (by index)
+    player_territory_cards: list[list[TerritoryCard]] # List of territory cards (size = 5) owned by each player (by index)
     trade_count: int # Number of trades that have been made so far (to determine trade-in values)
     deployment_troops: int # Number of troops available for deployment in the current draft phase
     current_territory_transfer: tuple[int, int] # Most recent (attacker_territory_id, defender_territory_id) for TransferAction
@@ -55,7 +55,7 @@ class GameState:
         self.active_players = [True] * num_players
         self.current_player = 0
         self.current_phase = GamePhase.DRAFT
-        self.player_territory_cards = [[] for _ in range(num_players)]
+        self.player_territory_cards = [[None] * 5 for _ in range(num_players)]
         self.trade_count = 0
         self.deployment_troops = max(3, math.ceil(num_territories / num_players) // 3) # Continent bonuses should NOT materialise in initial state
         self.current_territory_transfer = (-1, -1)

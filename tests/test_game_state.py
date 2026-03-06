@@ -10,7 +10,7 @@ class TestGameState(unittest.TestCase):
 		self.assertEqual(state.active_players, [True, True, True, True])
 		self.assertEqual(state.current_player, 0)
 		self.assertEqual(state.current_phase, GamePhase.DRAFT)
-		self.assertEqual(state.player_territory_cards, [[], [], [], []])
+		self.assertEqual(state.player_territory_cards, [[None] * 5, [None] * 5, [None] * 5, [None] * 5])
 		self.assertEqual(state.trade_count, 0)
 		self.assertEqual(state.current_territory_transfer, (-1, -1))
 		self.assertEqual(state.current_fortify_route, (-1, -1))

@@ -56,6 +56,10 @@ class SimulationRunner:
         for i, observer in enumerate(self.game_observations[0].observers):
             observers = [observer_manager.observers[i] for observer_manager in self.game_observations]
             print(observer.summarise_simulation(observers))
+        
+        if self.game_observations[0].observers:
+            truncated_episodes = [observer_manager for observer_manager in self.game_observations if observer_manager.observers[0].action_count == self.max_episode_length]
+            print(f"\n{len(truncated_episodes)}/{self.num_episodes} episodes reached the maximum episode length of {self.max_episode_length} and were truncated.")
 
 if __name__ == "__main__":
     risk_map = RiskMap.from_json("maps/classic.json")
