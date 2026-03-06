@@ -14,7 +14,25 @@ class TestGymRunner(unittest.TestCase):
     def setUp(self):
         self.num_players = 6
         self.classic_map = RiskMap.from_json("maps/classic.json")
-        self.runner = GymRunner(self.classic_map, [RLAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)])
+        self.runner = GymRunner(
+            self.classic_map,
+            [RLAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)],
+            2000
+        )
+
+class TestGymRunnerSimulation(TestGymRunner):
+    def test_full_episode_run(self):
+        observation, info = self.runner.reset()
+        done = False
+
+        while not done:
+            mask = self.runner.get_action_mask()
+            valid_actions = np.where(mask)[0]
+            action = np.random.choice(valid_actions)
+            observation, reward, terminated, truncated, info = self.runner.step(action)
+            done = terminated or truncated
+
+            self.assertTrue(self.runner.observation_space.contains(observation))
 
 class TestGymRunnerInitialisation(TestGymRunner):    
     def test_max_actions(self):
