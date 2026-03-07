@@ -8,20 +8,29 @@ from src.environment.actions import Action, ActionList, DeployAction, TradeActio
 from src.environment.game_state import GameState
 from src.environment.map import RiskMap
 
-from src.train.rl_agent import RLAgent
+from src.train.rl_agent import Agent, RLAgent
 
 # TODO: Remove player_id to enable flexible assignment of agents and dynamic ordering
 # TODO: Implement dynamic agent composition within episodes rather than a fixed composition for all episodes
 
-class GymRunner(gymnasium.Env):
-    def __init__(self, risk_map: RiskMap, num_players: int, max_episode_length: int = 20000):
+class RiskGymEnvironment(gymnasium.Env):
+    """The Gym environment for training a single RL agent to play Risk. This is NOT a general-purpose Risk environment and should never be used for experimentation outside of training the RL agent."""
+    def __init__(self, risk_map: RiskMap, num_players: int, agent_composition: list[Agent] = None):
         assert 2 <= num_players <= 6, "At least 2 and at most 6 agents are required to play Risk"
 
         self.risk_map = risk_map
-        self.rl_agent = RLAgent(None, None)
-        self.agents = AgentSampler.sample_agent_composition(num_players, [self.rl_agent])
 
-        self.max_episode_length = max_episode_length # NOT the same as max game length, but how many steps the RL agent specifically will take
+        if agent_composition is not None:
+            assert len(agent_composition) == num_players, "Length of agent composition must match number of players"
+            assert sum(isinstance(agent, RLAgent) for agent in agent_composition) == 1, "Exactly one agent in the composition must be an RLAgent"
+            assert all(agent.player_id == i for i, agent in enumerate(agent_composition)), "Agent player IDs must be in order."
+            self.rl_agent = next(agent for agent in agent_composition if isinstance(agent, RLAgent))
+            self.agents = agent_composition
+        else:
+            self.rl_agent = RLAgent(None, None)
+            self.agents = AgentSampler.sample_agent_composition(num_players, [self.rl_agent])
+
+        self.max_episode_length = 20000 # NOT the same as max game length, but how many steps the RL agent specifically will take
         self.episode_length = 0
 
         self.game_state = GameState(num_players, len(risk_map.territories), reset_to_initial_state=True)

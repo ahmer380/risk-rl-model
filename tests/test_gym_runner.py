@@ -7,14 +7,15 @@ from src.agents.agent import RandomAgent, AdvantageAttackAgent
 from src.environment.actions import DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
 from src.environment.map import RiskMap
 
-from src.train.gym_runner import GymRunner
 from src.train.rl_agent import RLAgent
+from src.train.gym_environment import RiskGymEnvironment
 
 class TestGymRunner(unittest.TestCase):
     def setUp(self):
         self.num_players = 6
+        agent_composition = [RLAgent(0, None), AdvantageAttackAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)]
         self.classic_map = RiskMap.from_json("maps/classic.json")
-        self.runner = GymRunner(self.classic_map, 6, 2000)
+        self.runner = RiskGymEnvironment(self.classic_map, 6, agent_composition)
 
 class TestGymRunnerSimulation(TestGymRunner):
     def test_full_episode_run(self):
