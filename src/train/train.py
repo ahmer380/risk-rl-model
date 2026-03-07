@@ -1,34 +1,23 @@
-from src.agents.agent import Agent, RandomAgent, AdvantageAttackAgent
-
 from src.environment.map import RiskMap
 
-from src.observers.observer_manager import ObserverManager
-from src.observers.trajectory_observer import TrajectoryObserver
+from src.train.gym_runner import GymRunner
+from src.train.ppo import RiskPPO
+from src.train.rl_agent import RLAgent
 
-from src.runners.game_runner import GameRunner
+def train(map_name: str, num_players: int):
+    risk_map = RiskMap.from_json(f"maps/{map_name}.json")
+    gym_runner = GymRunner(risk_map, num_players)
+    ppo_trainer = RiskPPO(gym_runner)
+    ppo_trainer.train(total_timesteps=5000)
+    ppo_trainer.save(f"ppo_{map_name}_map_{num_players}_player_agent")
 
-class RLTrainer:
-    def __init__(self, risk_map: RiskMap, agents: list[Agent]):
-        self.risk_map = risk_map
-        self.agents = agents
-        self.training_iterations: int = 10
-        self.max_episode_length: int = 100000
+def load_rl_agent(player_id: int, map_name: str, num_players: int) -> RLAgent:
+    risk_map = RiskMap.from_json(f"maps/{map_name}.json")
+    gym_runner = GymRunner(risk_map, num_players)
+    ppo_trainer = RiskPPO(gym_runner)
+    ppo_trainer.load(f"ppo_{map_name}_map_{num_players}_player_agent")
 
-    def train(self):
-        for episode in range(self.training_iterations):
-            print(f"\rTraining for episode {episode + 1}/{self.training_iterations}", end="")
-            trajectory_observer = TrajectoryObserver()
-            game_runner = GameRunner(
-                self.risk_map,
-                self.agents,
-                ObserverManager(self.risk_map, len(self.agents), observers=[trajectory_observer]),
-                self.max_episode_length
-            )
-            game_runner.run_episode()
-            # print(trajectory_observer.summarise_game())
+    return RLAgent(player_id=player_id, risk_ppo=ppo_trainer)
 
 if __name__ == "__main__":
-    agents = [AdvantageAttackAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)]
-    risk_map = RiskMap.from_json("maps/classic.json")
-    trainer = RLTrainer(risk_map, agents)
-    trainer.train()
+    train("mini", 2)

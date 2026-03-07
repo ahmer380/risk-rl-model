@@ -2,7 +2,7 @@ import numpy as np
 
 import gymnasium
 
-from src.agents.agent import Agent
+from src.agents.agent_sampler import AgentSampler
 
 from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
 from src.environment.game_state import GameState
@@ -10,20 +10,21 @@ from src.environment.map import RiskMap
 
 from src.train.rl_agent import RLAgent
 
+# TODO: Remove player_id to enable flexible assignment of agents and dynamic ordering
+# TODO: Implement dynamic agent composition within episodes rather than a fixed composition for all episodes
+
 class GymRunner(gymnasium.Env):
-    def __init__(self, risk_map: RiskMap, agents: list[Agent], max_episode_length: int = 20000):
-        assert 2 <= len(agents) <= 6, "At least 2 and at most 6 agents are required to play Risk"
-        assert [agent.player_id for agent in agents] == list(range(len(agents))), "Agent player IDs must be in order and match the number of agents."
-        assert sum(1 for agent in agents if isinstance(agent, RLAgent)) == 1, "There must be exactly one RLAgent in the list of agents"
+    def __init__(self, risk_map: RiskMap, num_players: int, max_episode_length: int = 20000):
+        assert 2 <= num_players <= 6, "At least 2 and at most 6 agents are required to play Risk"
 
         self.risk_map = risk_map
-        self.agents = agents
-        self.rl_agent: RLAgent = next(agent for agent in agents if isinstance(agent, RLAgent))
+        self.rl_agent = RLAgent(None, None)
+        self.agents = AgentSampler.sample_agent_composition(num_players, [self.rl_agent])
 
         self.max_episode_length = max_episode_length # NOT the same as max game length, but how many steps the RL agent specifically will take
         self.episode_length = 0
 
-        self.game_state = GameState(len(agents), len(risk_map.territories), reset_to_initial_state=True)
+        self.game_state = GameState(num_players, len(risk_map.territories), reset_to_initial_state=True)
 
         self.observation_space = self.get_observation_space()
         self.action_space = gymnasium.spaces.Discrete(self.get_max_actions(), dtype=np.uint16)
@@ -139,10 +140,13 @@ class GymRunner(gymnasium.Env):
 
         return encoded_observation
     
-    def get_action_mask(self) -> np.ndarray:
+    def action_masks(self, action_list: ActionList = None) -> np.ndarray:
         action_mask = np.zeros(self.get_max_actions(), dtype=bool)
 
-        for action in ActionList.get_action_list(self.game_state, self.risk_map).flatten():
+        if action_list is None:
+            action_list = ActionList.get_action_list(self.game_state, self.risk_map)
+
+        for action in action_list.flatten():
             action_mask[self.encode_action(action)] = True
         
         return action_mask
@@ -164,6 +168,12 @@ class GymRunner(gymnasium.Env):
             
             offset += max_actions
     
-    def calculate_reward(self, previous_state: GameState) -> float:
+    def calculate_reward(self, previous_state: GameState) -> float: # TODO: implement more sophisticated reward function
         """Calculate the reward for the current state based on the previous state."""
-        return 0.0
+        if self.game_state.is_terminal_state():
+            if self.game_state.active_players[self.rl_agent.player_id]:
+                return 1.0 # RL agent wins
+            else:
+                return -1.0 # RL agent loses
+        
+        return 0.0 # non-terminal state, no reward
