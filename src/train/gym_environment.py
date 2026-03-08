@@ -66,7 +66,7 @@ class RiskGymEnvironment(gymnasium.Env):
         reward = self.calculate_reward(previous_state)
 
         # check if episode has terminated (i.e. game over, or RL agent eliminated)
-        terminated = self.game_state.is_terminal_state() or self.episode_length >= self.max_episode_length or not self.game_state.active_players[self.rl_agent.player_id]
+        terminated = self.game_state.is_terminal_state() or not self.game_state.active_players[self.rl_agent.player_id]
 
         # check if episode has truncated (i.e. max episode length reached without termination)
         truncated = self.episode_length >= self.max_episode_length and not terminated

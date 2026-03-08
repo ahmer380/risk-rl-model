@@ -9,8 +9,6 @@ from src.observers.outcome_observer import OutcomeObserver
 
 from src.runners.game_runner import GameRunner
 
-from src.train.train import load_rl_agent
-
 class SimulationRunner:
     """Manages the execution of multiple Risk game episodes, for RL training and aggregate experimental analysis."""
     def __init__(
@@ -63,18 +61,10 @@ class SimulationRunner:
             truncated_episodes = [observer_manager for observer_manager in self.game_observations if observer_manager.observers[0].action_count == self.max_episode_length]
             print(f"\n{len(truncated_episodes)}/{self.num_episodes} episodes reached the maximum episode length of {self.max_episode_length} and were truncated.")
 
-# if __name__ == "__main__":
-#     risk_map = RiskMap.from_json("maps/classic.json")
-#     agents = [AdvantageAttackAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)]
-#     simulation_runner = SimulationRunner(risk_map, agents, 100, observers=[OutcomeObserver(), BattleObserver()])
-#     simulation_runner.run_simulation()
-#     # simulation_runner.summarise_game()
-#     simulation_runner.summarise_simulation()
-
 if __name__ == "__main__":
-    risk_map = RiskMap.from_json("maps/mini.json")
-    agents = [load_rl_agent(0, "mini", 2), AdvantageAttackAgent(1)]
-    simulation_runner = SimulationRunner(risk_map, agents, 10, observers=[OutcomeObserver(), BattleObserver()])
+    risk_map = RiskMap.from_json("maps/classic.json")
+    agents = [AdvantageAttackAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)]
+    simulation_runner = SimulationRunner(risk_map, agents, 100, observers=[OutcomeObserver(), BattleObserver()])
     simulation_runner.run_simulation()
     # simulation_runner.summarise_game()
     simulation_runner.summarise_simulation()

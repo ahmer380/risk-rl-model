@@ -10,14 +10,14 @@ from src.environment.map import RiskMap
 from src.train.rl_agent import RLAgent
 from src.train.gym_environment import RiskGymEnvironment
 
-class TestGymRunner(unittest.TestCase):
+class TestGymEnvironment(unittest.TestCase):
     def setUp(self):
         self.num_players = 6
         agent_composition = [RLAgent(0, None), AdvantageAttackAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)]
         self.classic_map = RiskMap.from_json("maps/classic.json")
         self.runner = RiskGymEnvironment(self.classic_map, 6, agent_composition)
 
-class TestGymRunnerSimulation(TestGymRunner):
+class TestGymEnvironmentSimulation(TestGymEnvironment):
     def test_full_episode_run(self):
         observation, info = self.runner.reset()
         done = False
@@ -30,8 +30,27 @@ class TestGymRunnerSimulation(TestGymRunner):
             done = terminated or truncated
 
             self.assertTrue(self.runner.observation_space.contains(observation))
+    
+    def test_step_execution(self):
+        self.num_players = 2
+        agent_composition = [RLAgent(0, None), RandomAgent(1)]
+        self.classic_map = RiskMap.from_json("maps/mini.json")
+        self.runner = RiskGymEnvironment(self.classic_map, 2, agent_composition)
+        observation, info = self.runner.reset()
 
-class TestGymRunnerInitialisation(TestGymRunner):    
+        num_steps = 50000
+        for _ in range(num_steps):
+            mask = self.runner.action_masks()
+            valid_actions = np.where(mask)[0]
+            action = np.random.choice(valid_actions)
+            observation, reward, terminated, truncated, info = self.runner.step(action)
+
+            self.assertTrue(self.runner.observation_space.contains(observation))
+
+            if terminated or truncated:
+                self.runner.reset()
+
+class TestGymEnvironmentInitialisation(TestGymEnvironment):    
     def test_max_actions(self):
         self.assertEqual(DeployAction.get_max_actions(self.classic_map), 42)
         self.assertEqual(TradeAction.get_max_actions(self.classic_map), 10)
@@ -78,7 +97,7 @@ class TestGymRunnerInitialisation(TestGymRunner):
         self.assertLessEqual(max(territories_per_player) - min(territories_per_player), 1) # approx equal territories
         self.assertTrue(all(troops == troops_per_player[0] for troops in troops_per_player)) # equal troops
 
-class TestEncodeAndDecodeActions(TestGymRunner):
+class TestEncodeAndDecodeActions(TestGymEnvironment):
     def test_encode_and_decode_deploy_action(self):
         deploy_action = DeployAction(20)
         encoded = self.runner.encode_action(deploy_action)
