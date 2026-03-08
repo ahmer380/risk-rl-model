@@ -72,6 +72,9 @@ class RiskGymEnvironment(gymnasium.Env):
         truncated = self.episode_length >= self.max_episode_length and not terminated
 
         info = {}
+        if terminated or truncated:
+            info["win"] = int(self.game_state.is_terminal_state() and self.game_state.get_winner() == self.rl_agent.player_id)
+            info["episode_length"] = self.episode_length
 
         return observation, reward, terminated, truncated, info
 
