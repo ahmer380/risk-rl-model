@@ -177,12 +177,21 @@ class RiskGymEnvironment(gymnasium.Env):
             
             offset += max_actions
     
-    def calculate_reward(self, previous_state: GameState) -> float: # TODO: implement more sophisticated reward function
+    def calculate_reward(self, previous_state: GameState) -> float:
         """Calculate the reward for the current state based on the previous state."""
         if self.game_state.is_terminal_state():
-            if self.game_state.active_players[self.rl_agent.player_id]:
-                return 1.0 # RL agent wins
-            else:
-                return -1.0 # RL agent loses
+            return 1.0 if self.game_state.get_winner() == self.rl_agent.player_id else -1.0
         
-        return 0.0 # non-terminal state, no reward
+        currently_owned_territories = self.game_state.get_player_owned_territory_ids(self.rl_agent.player_id)
+        previously_owned_territories = previous_state.get_player_owned_territory_ids(self.rl_agent.player_id)
+        territory_delta = len(currently_owned_territories) - len(previously_owned_territories)
+        troop_delta = sum(self.game_state.territory_troops[territory_id] for territory_id in currently_owned_territories) - sum(previous_state.territory_troops[territory_id] for territory_id in previously_owned_territories)
+        continent_bonus_delta = self.risk_map.get_player_continent_bonuses(self.rl_agent.player_id, self.game_state.territory_owners) - self.risk_map.get_player_continent_bonuses(self.rl_agent.player_id, previous_state.territory_owners)
+        eliminated_delta = sum(previous_state.active_players) - sum(self.game_state.active_players)
+
+        return (
+            0.01 * territory_delta + 
+            0.0001 * troop_delta + 
+            0.1 * continent_bonus_delta + 
+            0.1 * eliminated_delta
+        )

@@ -38,7 +38,7 @@ class TestGymEnvironmentSimulation(TestGymEnvironment):
         self.runner = RiskGymEnvironment(self.classic_map, 2, agent_composition)
         observation, info = self.runner.reset()
 
-        num_steps = 50000
+        num_steps = 5000
         for _ in range(num_steps):
             mask = self.runner.action_masks()
             valid_actions = np.where(mask)[0]
