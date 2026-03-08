@@ -465,10 +465,7 @@ class SkipAction(Action):
                 new_state.current_player = (new_state.current_player + 1) % len(new_state.active_players)
             
             # Calculate deployment troops for next player
-            new_state.deployment_troops = max(3, len(new_state.get_player_owned_territory_ids()) // 3)
-            for continent in risk_map.continents.values():
-                if all(new_state.territory_owners[territory.id] == new_state.current_player for territory in continent.territories):
-                    new_state.deployment_troops += continent.bonus
+            new_state.deployment_troops = max(3, len(new_state.get_player_owned_territory_ids()) // 3) + risk_map.get_player_continent_bonuses(new_state.current_player, new_state.territory_owners)
 
         return new_state
     

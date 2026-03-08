@@ -2,28 +2,38 @@ import numpy as np
 
 import gymnasium
 
-from src.agents.agent import Agent
+from src.agents.agent_sampler import AgentSampler
 
 from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
 from src.environment.game_state import GameState
 from src.environment.map import RiskMap
 
-from src.train.rl_agent import RLAgent
+from src.train.rl_agent import Agent, RLAgent
 
-class GymRunner(gymnasium.Env):
-    def __init__(self, risk_map: RiskMap, agents: list[Agent], max_episode_length: int = 20000):
-        assert 2 <= len(agents) <= 6, "At least 2 and at most 6 agents are required to play Risk"
-        assert [agent.player_id for agent in agents] == list(range(len(agents))), "Agent player IDs must be in order and match the number of agents."
-        assert sum(1 for agent in agents if isinstance(agent, RLAgent)) == 1, "There must be exactly one RLAgent in the list of agents"
+# TODO: Remove player_id to enable flexible assignment of agents and dynamic ordering
+# TODO: Implement dynamic agent composition within episodes rather than a fixed composition for all episodes
+
+class RiskGymEnvironment(gymnasium.Env):
+    """The Gym environment for training a single RL agent to play Risk. This is NOT a general-purpose Risk environment and should never be used for experimentation outside of training the RL agent."""
+    def __init__(self, risk_map: RiskMap, num_players: int, agent_composition: list[Agent] = None):
+        assert 2 <= num_players <= 6, "At least 2 and at most 6 agents are required to play Risk"
 
         self.risk_map = risk_map
-        self.agents = agents
-        self.rl_agent: RLAgent = next(agent for agent in agents if isinstance(agent, RLAgent))
 
-        self.max_episode_length = max_episode_length # NOT the same as max game length, but how many steps the RL agent specifically will take
+        if agent_composition is not None:
+            assert len(agent_composition) == num_players, "Length of agent composition must match number of players"
+            assert sum(isinstance(agent, RLAgent) for agent in agent_composition) == 1, "Exactly one agent in the composition must be an RLAgent"
+            assert all(agent.player_id == i for i, agent in enumerate(agent_composition)), "Agent player IDs must be in order."
+            self.rl_agent = next(agent for agent in agent_composition if isinstance(agent, RLAgent))
+            self.agents = agent_composition
+        else:
+            self.rl_agent = RLAgent(None, None)
+            self.agents = AgentSampler.sample_agent_composition(num_players, [self.rl_agent])
+
+        self.max_episode_length = 20000 # NOT the same as max game length, but how many steps the RL agent specifically will take
         self.episode_length = 0
 
-        self.game_state = GameState(len(agents), len(risk_map.territories), reset_to_initial_state=True)
+        self.game_state = GameState(num_players, len(risk_map.territories), reset_to_initial_state=True)
 
         self.observation_space = self.get_observation_space()
         self.action_space = gymnasium.spaces.Discrete(self.get_max_actions(), dtype=np.uint16)
@@ -56,12 +66,15 @@ class GymRunner(gymnasium.Env):
         reward = self.calculate_reward(previous_state)
 
         # check if episode has terminated (i.e. game over, or RL agent eliminated)
-        terminated = self.game_state.is_terminal_state() or self.episode_length >= self.max_episode_length or not self.game_state.active_players[self.rl_agent.player_id]
+        terminated = self.game_state.is_terminal_state() or not self.game_state.active_players[self.rl_agent.player_id]
 
         # check if episode has truncated (i.e. max episode length reached without termination)
         truncated = self.episode_length >= self.max_episode_length and not terminated
 
         info = {}
+        if terminated or truncated:
+            info["win"] = int(self.game_state.is_terminal_state() and self.game_state.get_winner() == self.rl_agent.player_id)
+            info["episode_length"] = self.episode_length
 
         return observation, reward, terminated, truncated, info
 
@@ -139,10 +152,13 @@ class GymRunner(gymnasium.Env):
 
         return encoded_observation
     
-    def get_action_mask(self) -> np.ndarray:
+    def action_masks(self, action_list: ActionList = None) -> np.ndarray:
         action_mask = np.zeros(self.get_max_actions(), dtype=bool)
 
-        for action in ActionList.get_action_list(self.game_state, self.risk_map).flatten():
+        if action_list is None:
+            action_list = ActionList.get_action_list(self.game_state, self.risk_map)
+
+        for action in action_list.flatten():
             action_mask[self.encode_action(action)] = True
         
         return action_mask
@@ -166,4 +182,19 @@ class GymRunner(gymnasium.Env):
     
     def calculate_reward(self, previous_state: GameState) -> float:
         """Calculate the reward for the current state based on the previous state."""
-        return 0.0
+        if self.game_state.is_terminal_state():
+            return 1.0 if self.game_state.get_winner() == self.rl_agent.player_id else -1.0
+        
+        currently_owned_territories = self.game_state.get_player_owned_territory_ids(self.rl_agent.player_id)
+        previously_owned_territories = previous_state.get_player_owned_territory_ids(self.rl_agent.player_id)
+        territory_delta = len(currently_owned_territories) - len(previously_owned_territories)
+        troop_delta = sum(self.game_state.territory_troops[territory_id] for territory_id in currently_owned_territories) - sum(previous_state.territory_troops[territory_id] for territory_id in previously_owned_territories)
+        continent_bonus_delta = self.risk_map.get_player_continent_bonuses(self.rl_agent.player_id, self.game_state.territory_owners) - self.risk_map.get_player_continent_bonuses(self.rl_agent.player_id, previous_state.territory_owners)
+        eliminated_delta = sum(previous_state.active_players) - sum(self.game_state.active_players)
+
+        return (
+            0.01 * territory_delta + 
+            0.0001 * troop_delta + 
+            0.1 * continent_bonus_delta + 
+            0.1 * eliminated_delta
+        )

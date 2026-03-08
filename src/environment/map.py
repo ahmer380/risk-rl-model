@@ -68,6 +68,15 @@ class RiskMap:
     
     def get_border_ids(self, territory_id: int) -> list[int]:
         return [border.id for border in self.territories[territory_id].borders]
+    
+    def get_player_continent_bonuses(self, player_id: int, territory_owners: list[int]) -> int:
+        continent_bonuses = 0
+
+        for continent in self.continents.values():
+            if all(territory_owners[territory.id] == player_id for territory in continent.territories):
+                continent_bonuses += continent.bonus
+
+        return continent_bonuses
         
     def __repr__(self):
         return f"RiskMap(name={self.name}, territories={len(self.territories)}, continents={len(self.continents)})"

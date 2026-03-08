@@ -1,34 +1,35 @@
-from src.agents.agent import Agent, RandomAgent, AdvantageAttackAgent
+import argparse
 
-from src.environment.map import RiskMap
+from src.train.ppo import RiskPPO
+from src.train.rl_agent import RLAgent
 
-from src.observers.observer_manager import ObserverManager
-from src.observers.trajectory_observer import TrajectoryObserver
+def train(map_name: str, num_players: int):
+    ppo_trainer = RiskPPO(map_name, num_players)
+    ppo_trainer.train(total_timesteps=5000)
+    ppo_trainer.save("v1")
 
-from src.runners.game_runner import GameRunner
+def load_rl_agent(player_id: int, map_name: str, num_players: int) -> RLAgent:
+    ppo_trainer = RiskPPO(map_name, num_players)
+    ppo_trainer.load("v1")
 
-class RLTrainer:
-    def __init__(self, risk_map: RiskMap, agents: list[Agent]):
-        self.risk_map = risk_map
-        self.agents = agents
-        self.training_iterations: int = 10
-        self.max_episode_length: int = 100000
+    return RLAgent(player_id=player_id, risk_ppo=ppo_trainer)
 
-    def train(self):
-        for episode in range(self.training_iterations):
-            print(f"\rTraining for episode {episode + 1}/{self.training_iterations}", end="")
-            trajectory_observer = TrajectoryObserver()
-            game_runner = GameRunner(
-                self.risk_map,
-                self.agents,
-                ObserverManager(self.risk_map, len(self.agents), observers=[trajectory_observer]),
-                self.max_episode_length
-            )
-            game_runner.run_episode()
-            # print(trajectory_observer.summarise_game())
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Train a PPO agent for the Risk environment.")
+    parser.add_argument(
+        "--map_name",
+        default="mini",
+        help="Map name to train on (e.g. mini, classic). Defaults to mini.",
+    )
+    parser.add_argument(
+        "--num_players",
+        type=int,
+        default=2,
+        help="Number of players in the environment. Defaults to 2.",
+    )
+    return parser.parse_args()
 
 if __name__ == "__main__":
-    agents = [AdvantageAttackAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)]
-    risk_map = RiskMap.from_json("maps/classic.json")
-    trainer = RLTrainer(risk_map, agents)
-    trainer.train()
+    args = parse_args()
+    train(args.map_name, args.num_players)
