@@ -132,7 +132,7 @@ class RiskGymEnvironment(gymnasium.Env):
     def advance_to_rl_turn(self):
         while self.game_state.current_player != self.rl_agent.player_id and not self.game_state.is_terminal_state():
             action_list = ActionList.get_action_list(self.game_state, self.risk_map)
-            selected_action = self.agents[self.game_state.current_player].select_action(action_list, self.game_state)
+            selected_action = self.agents[self.game_state.current_player].select_action(action_list, self.game_state, self.risk_map)
             self.game_state = selected_action.apply(self.game_state, self.risk_map)
     
     def encode_observation(self) -> dict:
