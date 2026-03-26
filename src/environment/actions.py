@@ -538,29 +538,22 @@ class ActionList:
             skip_actions=SkipAction.get_action_list(game_state, risk_map)
         )
     
-    def get_random_action(self) -> Action: # Verbose implementation, but in O(1) time
-        i = random.randint(0, self.size() - 1)
+    def get_random_action(self) -> Action:
+        return random.choice(self.flatten())
 
-        if i < len(self.deploy_actions):
-            return self.deploy_actions[i]
-        i -= len(self.deploy_actions)
-        if i < len(self.trade_actions):
-            return self.trade_actions[i]
-        i -= len(self.trade_actions)
-        if i < len(self.battle_actions):
-            return self.battle_actions[i]
-        i -= len(self.battle_actions)
-        if i < len(self.transfer_actions):
-            return self.transfer_actions[i]
-        i -= len(self.transfer_actions)
-        if i < len(self.fortify_route_actions):
-            return self.fortify_route_actions[i]
-        i -= len(self.fortify_route_actions)
-        if i < len(self.fortify_amount_actions):
-            return self.fortify_amount_actions[i]
-        i -= len(self.fortify_amount_actions)
+    def get_uniform_random_action(self) -> Action:
+        action_types = [
+            self.deploy_actions,
+            self.trade_actions,
+            self.battle_actions,
+            self.transfer_actions,
+            self.fortify_route_actions,
+            self.fortify_amount_actions,
+            self.skip_actions
+        ]
+        non_empty_action_types = [action_type for action_type in action_types if len(action_type) > 0]
 
-        return self.skip_actions[i]
+        return random.choice(random.choice(non_empty_action_types))
     
     def get_action_type_list_by_name(self, action_name: str) -> list[Action]:
         if action_name == DeployAction.get_name():

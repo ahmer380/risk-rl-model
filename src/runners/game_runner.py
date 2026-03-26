@@ -18,7 +18,8 @@ class GameRunner:
         assert len(agents) > 1, "At least two agents are required to run a game."
         assert [agent.player_id for agent in agents] == list(range(len(agents))), "Agent player IDs must be in order and match the number of agents."
         
-        self.environment = RiskEnvironment(risk_map, len(agents))
+        self.risk_map = risk_map
+        self.environment = RiskEnvironment(self.risk_map, len(agents))
         self.agents = agents
         self.observer_manager = observer_manager
         self.max_episode_length = max_episode_length
@@ -37,7 +38,7 @@ class GameRunner:
             action_list = self.environment.get_action_list()
             self.observer_manager.notify_action_list_generated(action_list)
 
-            selected_action = self.agents[previous_state.current_player].select_action(action_list, previous_state)
+            selected_action = self.agents[previous_state.current_player].select_action(action_list, previous_state, self.risk_map)
             current_state, reward, is_terminal_state = self.environment.step(selected_action)
             self.observer_manager.notify_action_taken(selected_action, previous_state, current_state, reward)
 

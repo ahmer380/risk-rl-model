@@ -1,7 +1,7 @@
 from abc import ABC
 
 from src.agents.draft_strategy import DraftStrategy, RandomDraftStrategy, MinimumDeployStrategy
-from src.agents.attack_strategy import AttackStrategy, RandomAttackStrategy, AdvantageAttackStrategy, DisadvantageAttackStrategy
+from src.agents.attack_strategy import AttackStrategy, WeightedRandomAttackStrategy, AdvantageAttackStrategy, DisadvantageAttackStrategy
 from src.agents.fortify_strategy import FortifyStrategy, RandomFortifyStrategy
 
 from src.environment.actions import Action, ActionList
@@ -29,8 +29,8 @@ class Agent(ABC):
 
 class RandomAgent(Agent):
     """Selects a random action"""
-    def __init__(self, player_id: int):
-        super().__init__(player_id, RandomDraftStrategy(), RandomAttackStrategy(), RandomFortifyStrategy())
+    def __init__(self, player_id: int, battle_weight: float = 0.95):
+        super().__init__(player_id, RandomDraftStrategy(), WeightedRandomAttackStrategy(battle_weight), RandomFortifyStrategy())
 
 class AdvantageAttackAgent(Agent):
     """Only battles if the odds are in the attacker's favour"""

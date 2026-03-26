@@ -11,10 +11,16 @@ from src.environment.map import RiskMap
 class AttackStrategy(Strategy, ABC):
     pass
 
-class RandomAttackStrategy(AttackStrategy):
+class WeightedRandomAttackStrategy(AttackStrategy):
+    """Select a random battle, transfer, or skip action with a weighted probability."""
+    def __init__(self, battle_weight: float):
+        self.battle_weight = battle_weight
+
     def select_action(self, valid_actions: ActionList, _game_state: GameState, _risk_map: RiskMap) -> Action:
-        return valid_actions.get_random_action()
-    
+        if valid_actions.battle_actions and random.random() < self.battle_weight:
+            return random.choice(valid_actions.battle_actions)
+        else:
+            return random.choice(valid_actions.transfer_actions + valid_actions.skip_actions)
 class AdvantageAttackStrategy(AttackStrategy):
     def select_action(self, valid_actions: ActionList, game_state: GameState, _: RiskMap) -> Action:
         """Only initiates battles if the player has a significant advantage in the number of armies."""
