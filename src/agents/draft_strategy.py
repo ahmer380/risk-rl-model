@@ -31,15 +31,19 @@ class MaximumDeployStrategy(DraftStrategy):
     
     def select_action(self, valid_actions: ActionList, game_state: GameState, _: RiskMap) -> Action:
         if valid_actions.deploy_actions:
-            if len(valid_actions.deploy_actions) <= self.capitals:
-                capital_deploy_actions = valid_actions.deploy_actions
-            else:
-                sorted_actions_by_troop_count = sorted(valid_actions.deploy_actions, key=lambda action: game_state.territory_troops[action.territory_id], reverse=True)
-                capital_deploy_actions = [action for action in valid_actions.deploy_actions if game_state.territory_troops[action.territory_id] >= game_state.territory_troops[sorted_actions_by_troop_count[self.capitals - 1].territory_id]]
-
-            return random.choice(capital_deploy_actions)
+            selected_capital_territory_id = random.choice(self.get_capital_territory_ids(game_state))
+            return next(action for action in valid_actions.deploy_actions if action.territory_id == selected_capital_territory_id)
         else:
             return random.choice(valid_actions.trade_actions + valid_actions.skip_actions)
+    
+    def get_capital_territory_ids(self, game_state: GameState) -> list[int]:
+        player_owned_territory_ids = game_state.get_player_owned_territory_ids()
+
+        if len(player_owned_territory_ids) <= self.capitals:
+            return player_owned_territory_ids
+        else:
+            threshold_troop_count = sorted([game_state.territory_troops[territory_id] for territory_id in player_owned_territory_ids], reverse=True)[self.capitals - 1]
+            return [territory_id for territory_id in player_owned_territory_ids if game_state.territory_troops[territory_id] >= threshold_troop_count]
 
 class ContinentalDeployStrategy(DraftStrategy):
     """Deploy to a territory inside a continent the player has the most current control over."""

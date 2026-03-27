@@ -91,9 +91,9 @@ class TestMaximumDeployStrategy(TestDraftStrategy):
         # Troop profile creates top-2 threshold with a tie: 0->8, 1->7, 2->7, 3->3.
         self.game_state.territory_troops = [1] * len(self.game_state.territory_troops)
         self.game_state.territory_troops[0] = 8
-        self.game_state.territory_troops[1] = 7
+        self.game_state.territory_troops[1] = 3
         self.game_state.territory_troops[2] = 7
-        self.game_state.territory_troops[3] = 3
+        self.game_state.territory_troops[3] = 7
 
     def test_select_action_returns_one_of_top_capital_deploys(self):
         strategy = MaximumDeployStrategy(capitals=2)
@@ -106,11 +106,12 @@ class TestMaximumDeployStrategy(TestDraftStrategy):
             fortify_amount_actions=[],
             skip_actions=[],
         )
-        expected_actions = [DeployAction(0), DeployAction(1), DeployAction(2)]
 
+        expected_actions = set([DeployAction(0).__repr__(), DeployAction(2).__repr__(), DeployAction(3).__repr__()])
+        selected_actions = set()
         for _ in range(50):
-            selected_action = strategy.select_action(action_list, self.game_state, self.classic_map)
-            self.assertIn(selected_action, expected_actions)
+            selected_actions.add(strategy.select_action(action_list, self.game_state, self.classic_map).__repr__())
+        self.assertEqual(expected_actions, selected_actions)
 
     def test_select_action_without_deploy_returns_trade_or_skip(self):
         strategy = MaximumDeployStrategy(capitals=2)

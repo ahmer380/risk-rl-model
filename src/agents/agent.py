@@ -1,8 +1,8 @@
 from abc import ABC
 
-from src.agents.draft_strategy import DraftStrategy, RandomDraftStrategy, MinimumDeployStrategy
+from src.agents.draft_strategy import DraftStrategy, RandomDraftStrategy, MinimumDeployStrategy, MaximumDeployStrategy
 from src.agents.attack_strategy import AttackStrategy, WeightedRandomAttackStrategy, SafeBattleStrategy, TransferMethod
-from src.agents.fortify_strategy import FortifyStrategy, RandomFortifyStrategy, MinimumFortifyStrategy
+from src.agents.fortify_strategy import FortifyStrategy, RandomFortifyStrategy, MinimumFortifyStrategy, MaximumFortifyStrategy
 
 from src.environment.actions import Action, ActionList
 from src.environment.game_state import GameState, GamePhase
@@ -34,5 +34,20 @@ class RandomAgent(Agent):
 
 class CommunistAgent(Agent):
     """Prioritises each territory equally, deploying/fortifying to the territory with the fewest troops at a given time"""
-    def __init__(self, player_id: int):
-        super().__init__(player_id, MinimumDeployStrategy(), SafeBattleStrategy(3, TransferMethod.SPLIT), MinimumFortifyStrategy())
+    def __init__(self, player_id: int, disparity: int = 3):
+        super().__init__(
+            player_id,
+            MinimumDeployStrategy(),
+            SafeBattleStrategy(disparity=disparity, transfer_method=TransferMethod.SPLIT),
+            MinimumFortifyStrategy()
+        )
+
+class CapitalistAgent(Agent):
+    """Concentrates troops on a small set of strong territories."""
+    def __init__(self, player_id: int, capitals: int = 3, disparity: int = 10):
+        super().__init__(
+            player_id,
+            MaximumDeployStrategy(capitals),
+            SafeBattleStrategy(disparity=disparity, transfer_method=TransferMethod.ALL),
+            MaximumFortifyStrategy(capitals),
+        )
