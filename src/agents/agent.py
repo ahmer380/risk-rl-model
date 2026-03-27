@@ -1,8 +1,8 @@
 from abc import ABC
 
 from src.agents.draft_strategy import DraftStrategy, RandomDraftStrategy, MinimumDeployStrategy
-from src.agents.attack_strategy import AttackStrategy, WeightedRandomAttackStrategy, AdvantageAttackStrategy, DisadvantageAttackStrategy
-from src.agents.fortify_strategy import FortifyStrategy, RandomFortifyStrategy
+from src.agents.attack_strategy import AttackStrategy, WeightedRandomAttackStrategy, SafeBattleStrategy, TransferMethod
+from src.agents.fortify_strategy import FortifyStrategy, RandomFortifyStrategy, MinimumFortifyStrategy
 
 from src.environment.actions import Action, ActionList
 from src.environment.game_state import GameState, GamePhase
@@ -32,12 +32,7 @@ class RandomAgent(Agent):
     def __init__(self, player_id: int, battle_weight: float = 0.95):
         super().__init__(player_id, RandomDraftStrategy(), WeightedRandomAttackStrategy(battle_weight), RandomFortifyStrategy())
 
-class AdvantageAttackAgent(Agent):
-    """Only battles if the odds are in the attacker's favour"""
+class CommunistAgent(Agent):
+    """Prioritises each territory equally, deploying/fortifying to the territory with the fewest troops at a given time"""
     def __init__(self, player_id: int):
-        super().__init__(player_id, MinimumDeployStrategy(), AdvantageAttackStrategy(), RandomFortifyStrategy())
-
-class DisadvantageAttackAgent(Agent):
-    """Always chooses the battle action with the highest odds of losing"""
-    def __init__(self, player_id: int):
-        super().__init__(player_id, MinimumDeployStrategy(), DisadvantageAttackStrategy(), RandomFortifyStrategy())
+        super().__init__(player_id, MinimumDeployStrategy(), SafeBattleStrategy(3, TransferMethod.SPLIT), MinimumFortifyStrategy())

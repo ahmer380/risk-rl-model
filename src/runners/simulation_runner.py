@@ -1,11 +1,9 @@
-from src.agents.agent import Agent, RandomAgent, AdvantageAttackAgent
+from src.agents.agent import Agent
 
 from src.environment.map import RiskMap
 
-from src.observers.battle_observer import BattleObserver
 from src.observers.observer import Observer
 from src.observers.observer_manager import ObserverManager
-from src.observers.outcome_observer import OutcomeObserver
 
 from src.runners.game_runner import GameRunner
 
@@ -60,11 +58,3 @@ class SimulationRunner:
         if self.game_observations[0].observers:
             truncated_episodes = [observer_manager for observer_manager in self.game_observations if observer_manager.observers[0].action_count == self.max_episode_length]
             print(f"\n{len(truncated_episodes)}/{self.num_episodes} episodes reached the maximum episode length of {self.max_episode_length} and were truncated.")
-
-if __name__ == "__main__":
-    risk_map = RiskMap.from_json("maps/classic.json")
-    agents = [AdvantageAttackAgent(0), RandomAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)]
-    simulation_runner = SimulationRunner(risk_map, agents, 100, observers=[OutcomeObserver(), BattleObserver()])
-    simulation_runner.run_simulation()
-    # simulation_runner.summarise_game()
-    simulation_runner.summarise_simulation()
