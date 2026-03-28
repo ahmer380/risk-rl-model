@@ -6,7 +6,7 @@ from abc import ABC
 
 from src.agents.strategy import Strategy
 
-from src.environment.actions import Action, ActionList
+from src.environment.actions import Action, ActionList, TransferAction
 from src.environment.game_state import GameState
 from src.environment.map import RiskMap
 
@@ -32,8 +32,8 @@ class AttackStrategy(Strategy, ABC):
             elif self.transfer_method == TransferMethod.ALL:
                 return max(valid_actions.transfer_actions, key=lambda action: action.troop_count) # should be territory_troops[attacker] - 1
             elif self.transfer_method == TransferMethod.SPLIT:
-                troop_count = max(max(action.troop_count for action in valid_actions.transfer_actions) // 2, 1)
-                return next(action for action in valid_actions.transfer_actions if action.troop_count == troop_count)
+                troop_count = (max(action.troop_count for action in valid_actions.transfer_actions) + 1) // 2
+                return TransferAction(troop_count)
         else:
             raise ValueError("Expected either transfer actions or skip actions to be available, but found both or neither.")
 
