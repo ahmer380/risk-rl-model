@@ -70,14 +70,18 @@ class TestMaximumFortifyStrategy(TestFortifyStrategy):
         super().setUp()
         self.fortify_strategy = MaximumFortifyStrategy(capitals=1)
 
-    def test_strategy_moves_all_troops_to_most_populous_territory(self):
-        selected_fortify_route_action = self.fortify_strategy.select_action(self.action_list, self.game_state, self.classic_map)
-        self.assertEqual(selected_fortify_route_action, FortifyRouteAction(21, 25))
+    def test_strategy_moves_all_troops_from_capital_to_non_capital(self):
+        expected_fortify_route_actions = {FortifyRouteAction(25, 20).__repr__(), FortifyRouteAction(25, 21).__repr__()}
+        selected_fortify_route_actions = set()
+        for _ in range(50):
+            selected_fortify_route_action = self.fortify_strategy.select_action(self.action_list, self.game_state, self.classic_map)
+            selected_fortify_route_actions.add(selected_fortify_route_action.__repr__())
+        self.assertEqual(expected_fortify_route_actions, selected_fortify_route_actions)
+    
         self.environment.step(selected_fortify_route_action)
         self.action_list = self.environment.get_action_list()
-
         selected_fortify_amount_action = self.fortify_strategy.select_action(self.action_list, self.game_state, self.classic_map)
-        self.assertEqual(selected_fortify_amount_action, FortifyAmountAction(6))
+        self.assertEqual(selected_fortify_amount_action, FortifyAmountAction(9))
 
 if __name__ == "__main__":
     unittest.main()

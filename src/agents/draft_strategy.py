@@ -4,7 +4,7 @@ from abc import ABC
 
 from src.agents.strategy import Strategy
 
-from src.environment.actions import Action, ActionList
+from src.environment.actions import Action, ActionList, DeployAction
 from src.environment.game_state import GameState
 from src.environment.map import RiskMap
 
@@ -31,8 +31,7 @@ class MaximumDeployStrategy(DraftStrategy):
     
     def select_action(self, valid_actions: ActionList, game_state: GameState, _: RiskMap) -> Action:
         if valid_actions.deploy_actions:
-            selected_capital_territory_id = random.choice(self.get_capital_territory_ids(game_state))
-            return next(action for action in valid_actions.deploy_actions if action.territory_id == selected_capital_territory_id)
+            return DeployAction(random.choice(self.get_capital_territory_ids(game_state)))
         else:
             return random.choice(valid_actions.trade_actions + valid_actions.skip_actions)
     
