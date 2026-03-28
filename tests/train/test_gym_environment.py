@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from src.agents.agent import RandomAgent, AdvantageAttackAgent
+from src.agents.agent import RandomAgent, CommunistAgent
 
 from src.environment.actions import DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
 from src.environment.map import RiskMap
@@ -13,7 +13,7 @@ from src.train.gym_environment import RiskGymEnvironment
 class TestGymEnvironment(unittest.TestCase):
     def setUp(self):
         self.num_players = 6
-        agent_composition = [RLAgent(0, None), AdvantageAttackAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), AdvantageAttackAgent(5)]
+        agent_composition = [RLAgent(0, None), CommunistAgent(1), RandomAgent(2), RandomAgent(3), RandomAgent(4), CommunistAgent(5)]
         self.classic_map = RiskMap.from_json("maps/classic.json")
         self.runner = RiskGymEnvironment(self.classic_map, 6, agent_composition)
 
