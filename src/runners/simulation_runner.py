@@ -1,3 +1,5 @@
+import random
+
 from src.agents.agent import Agent
 
 from src.environment.map import RiskMap
@@ -16,19 +18,22 @@ class SimulationRunner:
         num_episodes: int,
         observers: list[Observer] = [],
         max_episode_length = 100000,
+        shuffle_turn_order = False,
     ):
         self.risk_map = risk_map
         self.agents = agents
         self.num_episodes = num_episodes
         self.max_episode_length = max_episode_length
         self.observers = observers
-        
+        self.shuffle_turn_order = shuffle_turn_order
         self.game_observations: list[ObserverManager] = []
     
     def run_simulation(self):
         for episode in range(self.num_episodes):
             print(f"\rStarting episode {episode + 1}/{self.num_episodes}", end="")
             observers = [observer.clean_copy() for observer in self.observers]
+            if self.shuffle_turn_order and episode > 0: # we never shuffle turn order for the first episode...
+                random.shuffle(self.agents)
             observer_manager = ObserverManager(
                 self.risk_map, 
                 self.agents,
