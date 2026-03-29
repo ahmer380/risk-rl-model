@@ -13,7 +13,7 @@ class TestBattleObserver(unittest.TestCase):
         self.classic_map = RiskMap.from_json("maps/classic.json")
         self.num_players = 2
         self.game_state = GameState(self.num_players, len(self.classic_map.territories), True)
-        self.battle_observer = BattleObserver(CoreObserver(self.classic_map, [PlayerTelemetry(i) for i in range(self.num_players)]))
+        self.battle_observer = BattleObserver(CoreObserver(self.classic_map, [PlayerTelemetry(f"Player {i}", i) for i in range(self.num_players)]))
 
         self.game_state.current_phase = GamePhase.ATTACK
 

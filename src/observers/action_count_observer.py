@@ -70,7 +70,7 @@ class ActionCountObserver(Observer):
         for player_telemetry in self.core_observer.player_telemetries:
             total_turns = len(player_telemetry.action_counts[DeployAction.get_name()][0]) # same length for all action type lists
             row = []
-            row.append(f"Player {player_telemetry.player_id}")
+            row.append(player_telemetry.player_name)
             row.append(total_turns)
             row.append(sum(sum(counts[0]) for counts in player_telemetry.action_counts.values()))
             row.append(sum(sum(counts[0]) for counts in player_telemetry.action_counts.values()) / total_turns if total_turns > 0 else 0)
@@ -86,7 +86,7 @@ class ActionCountObserver(Observer):
         for player_telemetry in self.core_observer.player_telemetries:
             total_turns = len(player_telemetry.action_counts[DeployAction.get_name()][1]) # same length for all action type lists
             row = []
-            row.append(f"Player {player_telemetry.player_id}")
+            row.append(player_telemetry.player_name)
             row.append(total_turns)
             row.append(sum(sum(counts[1]) for counts in player_telemetry.action_counts.values()))
             row.append(sum(sum(counts[1]) for counts in player_telemetry.action_counts.values()) / total_turns if total_turns > 0 else 0)

@@ -11,12 +11,11 @@ class GameRunner:
     def __init__(
         self,
         risk_map: RiskMap,
-        agents: list[Agent],
+        agents: list[Agent], # Already ordered by their turn_number for this game
         observer_manager: ObserverManager,
         max_episode_length: int,
     ):
         assert len(agents) > 1, "At least two agents are required to run a game."
-        assert [agent.player_id for agent in agents] == list(range(len(agents))), "Agent player IDs must be in order and match the number of agents."
         
         self.risk_map = risk_map
         self.environment = RiskEnvironment(self.risk_map, len(agents))

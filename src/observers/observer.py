@@ -50,7 +50,7 @@ class CoreObserver(Observer):
     
     def on_action_taken(self, _action: Action, previous_state: GameState, current_state: GameState, _reward: float):
         for player_telemetry in self.player_telemetries:
-            if previous_state.active_players[player_telemetry.player_id] and not current_state.active_players[player_telemetry.player_id]:
+            if previous_state.active_players[player_telemetry.turn_number] and not current_state.active_players[player_telemetry.turn_number]:
                 player_telemetry.eliminated_turn_count = self.turn_count
 
         if previous_state.current_phase == GamePhase.FORTIFY and current_state.current_phase == GamePhase.DRAFT:
