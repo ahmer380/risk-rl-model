@@ -26,7 +26,7 @@ class OutcomeObserver(Observer):
     def summarise_game(self) -> str:
         lines = ["#### Outcome Observations ####"]
         lines.append(f"Episode ended after {self.running_time:.2f} seconds, {self.core_observer.action_count} actions and {self.core_observer.turn_count} turns.")
-        lines.append(f"Winner: Player {self.terminal_state.get_winner()}" if self.terminal_state.is_terminal_state() else "No winner")
+        lines.append(f"Winner: {self.core_observer.player_telemetries[self.terminal_state.get_winner()].player_name}" if self.terminal_state.is_terminal_state() else "No winner")
         lines.append(f"{self.terminal_state}")
 
         return "\n".join(lines)
@@ -68,16 +68,21 @@ class OutcomeObserver(Observer):
     
     @classmethod
     def get_winner_distributions(cls, observers: list[Self]) -> list[list]:
-        """Return list of [player_id, 1st, 2nd, ..., nth, stalemate, win rate, average finish position] for each player."""
-        rows = [[i] + [0] * len(observers[0].core_observer.player_telemetries) + [0, 0.0, 0.0] for i in range(len(observers[0].core_observer.player_telemetries))]
+        """Return list of [player_name, 1st, 2nd, ..., nth, stalemate, win rate, average finish position] for each player."""
+        rows = [[0] * (len(observers[0].core_observer.player_telemetries) + 4) for _ in range(len(observers[0].core_observer.player_telemetries))]
+        # assume the ordering of observer 0 is unshuffled and same as what is parsed in to SimulationRunner
+        
+        for i, player_telemetry in enumerate(observers[0].core_observer.player_telemetries):
+            rows[i][0] = player_telemetry.player_name
 
         for observer in observers:
             finish_order = sorted(observer.core_observer.player_telemetries, key=lambda x: (x.eliminated_turn_count is not None, -(x.eliminated_turn_count or 0)))
             for i, player_telemetry in enumerate(finish_order):
+                row_index = next(index for index, row in enumerate(rows) if row[0] == player_telemetry.player_name)
                 if player_telemetry.eliminated_turn_count is None and not observer.terminal_state.is_terminal_state():
-                    rows[player_telemetry.player_id][-3] += 1 # stalemate
+                    rows[row_index][-3] += 1 # stalemate
                 else:
-                    rows[player_telemetry.player_id][i + 1] += 1 # 1st, 2nd, ..., or nth place
+                    rows[row_index][i + 1] += 1 # 1st, 2nd, ..., or nth place
 
         completed_episode_count = sum(1 for observer in observers if observer.terminal_state.is_terminal_state())
         for row in rows:

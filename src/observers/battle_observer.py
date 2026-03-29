@@ -45,7 +45,7 @@ class BattleObserver(Observer):
         player_rows = []
         for player_telemetry in self.core_observer.player_telemetries:
             player_row = []
-            player_row.append(f"Player {player_telemetry.player_id}")
+            player_row.append(player_telemetry.player_name)
             player_row.append(len(player_telemetry.attacks))
             player_row.append(self.get_total_successful_battles(player_telemetry))
             player_row.append(self.get_battle_win_rate(player_telemetry) * 100)
@@ -117,21 +117,22 @@ class BattleObserver(Observer):
 
     @classmethod
     def get_player_battle_statistics(cls, observers: list[Self]) -> list[list]:
-        """Return list of [player_id, battle win rate, average battles per turn, average battle differential] for each player."""
+        """Return list of [player_name, battle win rate, average battles per turn, average battle differential] for each player."""
         rows = []
 
-        for player_id in range(len(observers[0].core_observer.player_telemetries)):
+        for player_name in [player.player_name for player in observers[0].core_observer.player_telemetries]: 
+            # assume the ordering of observer 0 is unshuffled and same as what is parsed in to SimulationRunner
             total_battles, total_successful_battles, total_battle_differential, total_turns = 0, 0, 0, 0
 
             for observer in observers:
-                player_telemetry = observer.core_observer.player_telemetries[player_id]
+                player_telemetry = next(pt for pt in observer.core_observer.player_telemetries if pt.player_name == player_name)
                 total_battles += len(player_telemetry.attacks)
                 total_successful_battles += observer.get_total_successful_battles(player_telemetry)
                 total_battle_differential += observer.get_total_battle_differential(player_telemetry)
                 total_turns += observer.core_observer.get_player_turn_count(player_telemetry)
             
             rows.append([
-                f"Player {player_id}",
+                player_name,
                 f"{(total_successful_battles / total_battles * 100 if total_battles > 0 else 0):.2f}%",
                 f"{(total_battles / total_turns if total_turns > 0 else 0):.2f}",
                 f"{(total_battle_differential / total_battles if total_battles > 0 else 0):.2f}"

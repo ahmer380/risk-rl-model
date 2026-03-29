@@ -31,7 +31,7 @@ class SimulationRunner:
             observers = [observer.clean_copy() for observer in self.observers]
             observer_manager = ObserverManager(
                 self.risk_map, 
-                len(self.agents),
+                self.agents,
                 observers,
             )
             self.game_observations.append(observer_manager)

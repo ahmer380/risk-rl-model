@@ -1,3 +1,4 @@
+from src.agents.agent import Agent
 
 from src.environment.actions import Action, ActionList
 from src.environment.game_state import GameState
@@ -11,14 +12,14 @@ class ObserverManager():
     def __init__(
         self,
         risk_map: RiskMap,
-        num_players: int,
+        agents: list[Agent], # Already ordered by their turn_number for this game
         observers: list[Observer] = [],
     ):
         assert CoreObserver not in [type(observer) for observer in observers], "CoreObserver is automatically added and should not be included in the observer list."
 
         self.observers: list[Observer] = observers
         if self.observers:
-            core_observer = CoreObserver(risk_map, [PlayerTelemetry(i) for i in range(num_players)])
+            core_observer = CoreObserver(risk_map, [PlayerTelemetry(agent.get_name(), turn_number) for turn_number, agent in enumerate(agents)])
             for observer in self.observers:
                 observer.core_observer = core_observer
             self.observers.insert(0, core_observer)

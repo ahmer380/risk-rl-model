@@ -5,8 +5,7 @@ from src.environment.actions import Action, ActionList
 from src.environment.game_state import GameState
 
 class RLAgent(Agent):
-    def __init__(self, player_id: int, risk_ppo):
-        self.player_id = player_id
+    def __init__(self, risk_ppo):
         self.risk_ppo = risk_ppo
 
     def select_action(self, valid_actions: ActionList, game_state: GameState) -> Action:

@@ -22,9 +22,10 @@ class BattleLog:
         self.successful_battle = successful_battle
 
 class PlayerTelemetry:
-    """Records metrics of player behaviour during a game, to be read and written by observers."""
-    def __init__(self, player_id: int):
-        self.player_id = player_id
+    """Records metrics of player behaviour during a single game, to be read and written by observers."""
+    def __init__(self, player_name: str, turn_number: int):
+        self.player_name = player_name
+        self.turn_number = turn_number
 
         # attributes to be used by the BattleObserver
         self.attacks: list[BattleLog] = [] # log of battles initiated by the player

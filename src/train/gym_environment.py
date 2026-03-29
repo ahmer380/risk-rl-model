@@ -23,11 +23,10 @@ class RiskGymEnvironment(gymnasium.Env):
         if agent_composition is not None:
             assert len(agent_composition) == num_players, "Length of agent composition must match number of players"
             assert sum(isinstance(agent, RLAgent) for agent in agent_composition) == 1, "Exactly one agent in the composition must be an RLAgent"
-            assert all(agent.player_id == i for i, agent in enumerate(agent_composition)), "Agent player IDs must be in order."
             self.rl_agent = next(agent for agent in agent_composition if isinstance(agent, RLAgent))
             self.agents = agent_composition
         else:
-            self.rl_agent = RLAgent(None, None)
+            self.rl_agent = RLAgent(None)
             self.agents = AgentSampler.sample_agent_composition(num_players, [self.rl_agent])
 
         self.max_episode_length = 20000 # NOT the same as max game length, but how many steps the RL agent specifically will take

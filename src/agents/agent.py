@@ -9,11 +9,20 @@ from src.environment.game_state import GameState, GamePhase
 from src.environment.map import RiskMap
 
 class Agent(ABC):
-    def __init__(self, player_id: int, draft_strategy: DraftStrategy, attack_strategy: AttackStrategy, fortify_strategy: FortifyStrategy):
-        self.player_id = player_id
+    player_id: int = 0
+
+    def __init__(self, draft_strategy: DraftStrategy, attack_strategy: AttackStrategy, fortify_strategy: FortifyStrategy):
+        Agent.player_id += 1
+        type(self).player_id += 1
+
+        self.player_id = type(self).player_id
         self.draft_strategy = draft_strategy
         self.attack_strategy = attack_strategy
         self.fortify_strategy = fortify_strategy
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.player_id = 0
 
     def select_action(self, valid_actions: ActionList, game_state: GameState, risk_map: RiskMap) -> Action:
         """Select an action from the list of valid actions based on the current game state and the agent's policy."""
@@ -26,17 +35,31 @@ class Agent(ABC):
     
     def reset(self):
         """Reset any internal state of the agent if necessary for the start of a new episode."""
+    
+    def get_name(self) -> str:
+        """Return the name of the agent for logging and visualisation purposes."""
+        if type(self).player_id == 1:
+            return self.__class__.__name__
+        else:
+            return f"{self.__class__.__name__} {self.player_id}"
+    
+    @classmethod
+    def reset_player_ids(cls):
+        """Reset the player ID counter for all subclasses of Agent."""
+        cls.player_id = 0
+
+        for subclass in cls.__subclasses__():
+            subclass.reset_player_ids()
 
 class RandomAgent(Agent):
     """Selects a random action"""
-    def __init__(self, player_id: int, battle_weight: float = 0.95):
-        super().__init__(player_id, RandomDraftStrategy(), WeightedRandomAttackStrategy(battle_weight), RandomFortifyStrategy())
+    def __init__(self, battle_weight: float = 0.95):
+        super().__init__(RandomDraftStrategy(), WeightedRandomAttackStrategy(battle_weight), RandomFortifyStrategy())
 
 class CommunistAgent(Agent):
     """Prioritises each territory equally, deploying/fortifying to the territory with the fewest troops at a given time"""
-    def __init__(self, player_id: int, disparity: int = 3):
+    def __init__(self, disparity: int = 3):
         super().__init__(
-            player_id,
             MinimumDeployStrategy(),
             SafeBattleStrategy(disparity=disparity, transfer_method=TransferMethod.SPLIT),
             MinimumFortifyStrategy()
@@ -44,9 +67,8 @@ class CommunistAgent(Agent):
 
 class CapitalistAgent(Agent):
     """Concentrates troops on a small set of strong territories."""
-    def __init__(self, player_id: int, capitals: int = 3, disparity: int = 10):
+    def __init__(self, capitals: int = 3, disparity: int = 10):
         super().__init__(
-            player_id,
             MaximumDeployStrategy(capitals),
             SafeBattleStrategy(disparity=disparity, transfer_method=TransferMethod.ALL),
             MaximumFortifyStrategy(capitals),

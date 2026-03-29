@@ -14,5 +14,7 @@ Then we can implement the experiment as follows:
 4. Dependent variable: take plots of (win rates per agent, average finish position, average action length, average turn length) against map density
 5. Controlled variables: Agent compositon (communistAgent, capitalistAgent, 2 random agents), number of episodes (1000)
 
-The results seem to change substantially depending on the values of "disparity" and "capitals"... just pick one, and say in "validity of results" section my findings of the fluctuations
+Threats to validity: (external validity)
+- The results seem to change substantially depending on the values of "disparity" and "capitals"... just pick one, and say in "validity of results" section my findings of the fluctuations
+- mention the realism to Risk a.k.a. the "four country limit" means density of 1 is impossible (oh well lol)
 """
