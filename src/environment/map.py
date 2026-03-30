@@ -30,10 +30,13 @@ class RiskMap:
         self.validate()
 
     @classmethod
-    def from_json(cls, path):
-        path = Path(path)
-        with path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
+    def from_json(cls, path = None, json_data = None):
+        if json_data is not None:
+            data = json_data
+        else:
+            path = Path(path)
+            with path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
 
         territories: Dict[int, Territory] = {}
         continents: Dict[int, Continent] = {}
@@ -65,6 +68,16 @@ class RiskMap:
         for territory in self.territories.values():
             for border in territory.borders:
                 assert territory in border.borders, f"Territory '{border.name}' is in '{territory.name}' borders, but '{territory.name}' is not in '{border.name}' borders"
+        
+        # Assertion 3: The map is connected (i.e. there exists a path between any two territories)
+        visited = set()
+        def dfs(territory: Territory):
+            visited.add(territory)
+            for border in territory.borders:
+                if border not in visited:
+                    dfs(border)
+        dfs(next(iter(self.territories.values())))
+        assert len(visited) == len(self.territories), f"The map is not connected"
     
     def get_border_ids(self, territory_id: int) -> list[int]:
         return [border.id for border in self.territories[territory_id].borders]
@@ -84,4 +97,5 @@ class RiskMap:
     def __str__(self):
         territories_str = "\n".join(f"{territory_id}: {repr(territory)}" for territory_id, territory in self.territories.items())
         continents_str = "\n".join(f"{continent_id}: {repr(continent)}" for continent_id, continent in self.continents.items())
-        return f"{self.name}:\n\nTerritories ({len(self.territories)}):\n{territories_str}\n\nContinents ({len(self.continents)}):\n{continents_str}"
+        border_count_str = f"\nTotal borders: {sum(len(territory.borders) for territory in self.territories.values()) // 2}"
+        return f"{self.name}:\n\nTerritories ({len(self.territories)}):\n{territories_str}\n\nContinents ({len(self.continents)}):\n{continents_str}\n{border_count_str}"

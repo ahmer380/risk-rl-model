@@ -86,7 +86,7 @@ class OutcomeObserver(Observer):
 
         completed_episode_count = sum(1 for observer in observers if observer.terminal_state.is_terminal_state())
         for row in rows:
-            row[-2] = row[1] / completed_episode_count * 100 if completed_episode_count else 0 # win rate
-            row[-1] = sum(i * row[i] for i in range(1, len(observers[0].core_observer.player_telemetries) + 1)) / (len(observers) - row[-3]) if (len(observers) - row[-3]) else 0 # average finish position
+            row[-2] = row[1] / completed_episode_count * 100 if completed_episode_count else 0.0 # win rate
+            row[-1] = sum(i * row[i] for i in range(1, len(observers[0].core_observer.player_telemetries) + 1)) / (len(observers) - row[-3]) if (len(observers) - row[-3]) else 0.0 # average finish position
         
         return rows

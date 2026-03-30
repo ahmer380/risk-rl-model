@@ -2,7 +2,7 @@ import time
 
 from collections import Counter
 
-from src.blitz_battle_simulator.blitz_battle_simulator import BlitzBattleSimulator
+from src.utils.blitz_battle_simulator import BlitzBattleSimulator
 
 def run_battle_simulation_multiple_times(attacker_troops: int, defender_troops: int):
     start_time = time.time()

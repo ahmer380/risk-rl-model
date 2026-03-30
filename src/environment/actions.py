@@ -7,7 +7,7 @@ from itertools import combinations
 from src.environment.map import RiskMap
 from src.environment.game_state import GamePhase, GameState, CombatArm, TerritoryCard
 
-from src.blitz_battle_simulator.blitz_battle_simulator import BlitzBattleSimulator
+from src.utils.blitz_battle_simulator import BlitzBattleSimulator
 
 battle_simulator = BlitzBattleSimulator()
 

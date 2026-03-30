@@ -13,6 +13,7 @@ class SimulationRunner:
     """Manages the execution of multiple Risk game episodes, for RL training and aggregate experimental analysis."""
     def __init__(
         self,
+        title: str,
         risk_map: RiskMap,
         agents: list[Agent],
         num_episodes: int,
@@ -20,6 +21,7 @@ class SimulationRunner:
         max_episode_length = 100000,
         shuffle_turn_order = False,
     ):
+        self.title = title
         self.risk_map = risk_map
         self.agents = agents
         self.num_episodes = num_episodes
@@ -33,7 +35,7 @@ class SimulationRunner:
             print(f"\rStarting episode {episode + 1}/{self.num_episodes}", end="")
             observers = [observer.clean_copy() for observer in self.observers]
             if self.shuffle_turn_order and episode > 0: # we never shuffle turn order for the first episode...
-                random.shuffle(self.agents)
+                self.agents = random.sample(self.agents, len(self.agents))
             observer_manager = ObserverManager(
                 self.risk_map, 
                 self.agents,
@@ -56,6 +58,7 @@ class SimulationRunner:
                 observer_manager.summarise_game()
 
     def summarise_simulation(self):
+        print(f"\n\n**** Summarising observations for {self.title} ****")
         for i, observer in enumerate(self.game_observations[0].observers):
             observers = [observer_manager.observers[i] for observer_manager in self.game_observations]
             print(observer.summarise_simulation(observers))
