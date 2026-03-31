@@ -1,5 +1,7 @@
 import os
 
+from collections import defaultdict
+
 import matplotlib.pyplot as plt
 
 from src.agents.agent import Agent, RandomAgent, CommunistAgent, CapitalistAgent
@@ -35,14 +37,16 @@ class Experiment1:
       clique_size: int,
       agent_composition: list[Agent],
       num_episodes_per_simulation: int = 10,
-      density_interval_size: float = 0.05
+      density_interval_size: float = 0.5
     ):
       self.clique_size = clique_size
       self.agent_composition = agent_composition
       self.num_episodes_per_simulation = num_episodes_per_simulation
       self.density_interval_size = density_interval_size
 
-      self.simulations: dict[float, SimulationRunner] = {} # density -> simulation runner
+      self.simulations: dict[float, SimulationRunner] = {} # key=density, value=SimulationRunner with that density
+      self.agent_stats: dict[Agent, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list)) # key=agent, value={key=metric name, value=metric value}
+      self.game_length_stats: dict[str, list[float]] = defaultdict(list) # key=metric name, value=metric value
     
     def run_experiment(self):
       density = 2 / self.clique_size
@@ -62,9 +66,99 @@ class Experiment1:
         simulation_runner.run_simulation()
         self.simulations[density] = simulation_runner
         density = round(self.density_interval_size * (round(density / self.density_interval_size) + 1), 2)
+      
+      self.calculate_stats()
+    
+    def calculate_stats(self):
+      """Calculate stats for each agent and overall game stats across all simulations"""
+      densities = sorted(self.simulations.keys())
+
+      for density in densities:
+        simulation_runner = self.simulations[density]
+        outcome_observers = [next(observer for observer in observer_manager.observers if isinstance(observer, OutcomeObserver)) for observer_manager in simulation_runner.game_observations]
+
+        # Calculate win rate and average finish position for each agent
+        winner_distributions = OutcomeObserver.get_winner_distributions(outcome_observers)
+        for row in winner_distributions:
+          agent_name = row[0]
+          win_rate = row[-2] 
+          average_finish_position = row[-1]
+          agent = next(agent for agent in self.agent_composition if agent.get_name() == agent_name)
+          self.agent_stats[agent][f"win_rates"].append(win_rate)
+          self.agent_stats[agent][f"average_finish_positions"].append(average_finish_position)
+        
+        # Calculate average, minimum, and maximum number of actions/turns per episode across all episodes in the simulation
+        game_length_stats = OutcomeObserver.get_game_length_statistics(outcome_observers)
+        average_actions, maximum_actions, minimum_actions = game_length_stats[0][2], game_length_stats[0][3], game_length_stats[0][4]
+        average_turns, maximum_turns, minimum_turns = game_length_stats[1][2], game_length_stats[1][3], game_length_stats[1][4]
+        self.game_length_stats[f"average_action_length"].append(average_actions)
+        self.game_length_stats[f"maximum_action_length"].append(maximum_actions)
+        self.game_length_stats[f"minimum_action_length"].append(minimum_actions)
+        self.game_length_stats[f"average_turn_length"].append(average_turns)
+        self.game_length_stats[f"maximum_turn_length"].append(maximum_turns)
+        self.game_length_stats[f"minimum_turn_length"].append(minimum_turns)
+
+    def plot_win_rate_graph(self):
+      """Plot a map-density vs win rate graph for each agent across simulations"""
+      for agent in self.agent_composition:
+        win_rates = self.agent_stats[agent][f"win_rates"]
+        densities = sorted(self.simulations.keys())
+        plt.plot(densities, win_rates, label=agent.get_name(), color=agent.get_colour())
+      
+      plt.xlim(0, 1)
+      plt.ylim(0, 100)
+      plt.title("Win Rate (%) vs Map Density")
+      plt.legend(loc="upper right")
+      plt.grid(True, alpha=0.3)
+      plt.show()
+    
+    def plot_average_finish_position_graph(self):
+      """Plot a map-density vs average finish position graph for each agent across simulations"""
+      for agent in self.agent_composition:
+        average_finish_positions = self.agent_stats[agent][f"average_finish_positions"]
+        densities = sorted(self.simulations.keys())
+        plt.plot(densities, average_finish_positions, label=agent.get_name(), color=agent.get_colour())
+      
+      plt.xlim(0, 1)
+      plt.ylim(0, len(self.agent_composition))
+      plt.title("Average Finish Position vs Map Density")
+      plt.legend(loc="upper right")
+      plt.grid(True, alpha=0.3)
+      plt.show()
+    
+    def plot_action_length_graph(self):
+      """Plot a map-density vs average/maximum/minimum action length graph across simulations"""
+      densities = sorted(self.simulations.keys())
+      plt.plot(densities, self.game_length_stats[f"average_action_length"], label="Average", color="green")
+      # plt.plot(densities, self.game_length_stats[f"maximum_action_length"], label="Maximum", color="red")
+      # plt.plot(densities, self.game_length_stats[f"minimum_action_length"], label="Minimum", color="blue")
+
+      plt.xlim(0, 1)
+      plt.title("Action Length vs Map Density")
+      plt.legend(loc="upper right")
+      plt.grid(True, alpha=0.3)
+      plt.show()
+    
+    def plot_turn_length_graph(self):
+      """Plot a map-density vs average/maximum/minimum turn length graph across simulations"""
+      densities = sorted(self.simulations.keys())
+      plt.plot(densities, self.game_length_stats[f"average_turn_length"], label="Average", color="green")
+      # plt.plot(densities, self.game_length_stats[f"maximum_turn_length"], label="Maximum", color="red")
+      #plt.plot(densities, self.game_length_stats[f"minimum_turn_length"], label="Minimum", color="blue")
+
+      plt.xlim(0, 1)
+      plt.title("Turn Length vs Map Density")
+      plt.legend(loc="upper right")
+      plt.grid(True, alpha=0.3)
+      plt.show()
 
 if __name__ == "__main__":
    experiment = Experiment1(clique_size=16, agent_composition=[CommunistAgent(), CapitalistAgent(), RandomAgent(), RandomAgent()])
    experiment.run_experiment()
    for simulation in experiment.simulations.values():
      simulation.summarise_simulation()
+
+   experiment.plot_win_rate_graph()
+   experiment.plot_average_finish_position_graph()
+   experiment.plot_action_length_graph()
+   experiment.plot_turn_length_graph()
