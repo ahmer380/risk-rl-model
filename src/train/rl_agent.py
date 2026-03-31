@@ -15,3 +15,7 @@ class RLAgent(Agent):
         decoded_action = self.risk_ppo.gym_environment.decode_action(action)
 
         return decoded_action
+    
+    @classmethod
+    def get_colour(cls):
+        return "black"
