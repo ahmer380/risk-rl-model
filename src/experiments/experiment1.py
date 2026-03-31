@@ -36,8 +36,8 @@ class Experiment1:
         self,
         clique_size: int,
         agent_composition: list[Agent],
-        num_episodes_per_simulation: int = 10,
-        density_interval_size: float = 0.5
+        num_episodes_per_simulation: int = 1000,
+        density_interval_size: float = 0.01
     ):
         self.clique_size = clique_size
         self.agent_composition = agent_composition
@@ -97,6 +97,15 @@ class Experiment1:
             self.game_length_stats[f"average_turn_length"].append(average_turns)
             self.game_length_stats[f"maximum_turn_length"].append(maximum_turns)
             self.game_length_stats[f"minimum_turn_length"].append(minimum_turns)
+    
+    def add_common_plot_properties(self, ax: plt.Axes):
+        """Plot the common base features for all graphs"""
+        ax.set_xlim(2 /self.clique_size, 1)
+        x_ticks = [density for density in self.simulations.keys() if density in [2 / self.clique_size, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]]
+        ax.set_xticks(x_ticks)
+        ax.set_xticklabels([f'{round(t, 3):g}' for t in x_ticks])
+        ax.legend(loc="upper right")
+        ax.grid(True, alpha=0.3)
 
     def plot_win_rate_graph(self, ax: plt.Axes):
         """Plot a map-density vs win rate graph for each agent across simulations"""
@@ -105,11 +114,9 @@ class Experiment1:
             densities = sorted(self.simulations.keys())
             ax.plot(densities, win_rates, label=agent.get_name(), color=agent.get_colour())
       
-        ax.set_xlim(0, 1)
         ax.set_ylim(0, 100)
         ax.set_title("Win Rate (%) vs Map Density")
-        ax.legend(loc="upper right")
-        ax.grid(True, alpha=0.3)
+        self.add_common_plot_properties(ax)
     
     def plot_average_finish_position_graph(self, ax: plt.Axes):
         """Plot a map-density vs average finish position graph for each agent across simulations"""
@@ -118,11 +125,9 @@ class Experiment1:
             densities = sorted(self.simulations.keys())
             ax.plot(densities, average_finish_positions, label=agent.get_name(), color=agent.get_colour())
       
-        ax.set_xlim(0, 1)
         ax.set_ylim(0, len(self.agent_composition))
         ax.set_title("Average Finish Position vs Map Density")
-        ax.legend(loc="upper right")
-        ax.grid(True, alpha=0.3)
+        self.add_common_plot_properties(ax)
     
     def plot_action_length_graph(self, ax: plt.Axes):
         """Plot a map-density vs average/maximum/minimum action length graph across simulations"""
@@ -131,11 +136,9 @@ class Experiment1:
         # ax.plot(densities, self.game_length_stats[f"maximum_action_length"], label="Maximum", color="red")
         # ax.plot(densities, self.game_length_stats[f"minimum_action_length"], label="Minimum", color="blue")
 
-        ax.set_xlim(0, 1)
         ax.set_ylim(0, None)
         ax.set_title("Action Length vs Map Density")
-        ax.legend(loc="upper right")
-        ax.grid(True, alpha=0.3)
+        self.add_common_plot_properties(ax)
     
     def plot_turn_length_graph(self, ax: plt.Axes):
         """Plot a map-density vs average/maximum/minimum turn length graph across simulations"""
@@ -144,11 +147,9 @@ class Experiment1:
         # ax.plot(densities, self.game_length_stats[f"maximum_turn_length"], label="Maximum", color="red")
         # ax.plot(densities, self.game_length_stats[f"minimum_turn_length"], label="Minimum", color="blue")
 
-        ax.set_xlim(0, 1)
         ax.set_ylim(0, None)
         ax.set_title("Turn Length vs Map Density")
-        ax.legend(loc="upper right")
-        ax.grid(True, alpha=0.3)
+        self.add_common_plot_properties(ax)
 
 if __name__ == "__main__":
     CLIQUE_SIZE = 16
