@@ -161,5 +161,5 @@ if __name__ == "__main__":
     experiment.plot_action_length_graph(axs[1, 0])
     experiment.plot_turn_length_graph(axs[1, 1])
     fig.tight_layout()
-    fig.savefig(f"src/experiments/experiment1_{CLIQUE_SIZE}_clique_results")
+    fig.savefig(f"experiment_results/experiment1_{CLIQUE_SIZE}_clique")
     plt.show()
