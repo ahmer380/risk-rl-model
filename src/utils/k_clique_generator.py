@@ -1,8 +1,12 @@
 import random
 
+import matplotlib.pyplot as plt
+import networkx as nx
+
 class KCliqueGenerator:
+    """Generates a k-clique graph with a specified density of edges."""
     @classmethod
-    def generate(cls, k: int, density: float = 1.0):
+    def generate(cls, k: int, density: float, visualise: bool = False):
         assert 0 <= density <= 1, "Density must be between 0 and 1"
         assert density >= 2 / k, "Density must be greater than 2/k to ensure a connected graph"
 
@@ -28,4 +32,19 @@ class KCliqueGenerator:
             map_json["borders"][border[0]].append(border[1])
             map_json["borders"][border[1]].append(border[0])
         
+        if visualise:
+            KCliqueGenerator.visualise(map_json)
+        
         return map_json
+    
+    @classmethod
+    def visualise(cls, map_json):
+        G = nx.Graph()
+        for territory, neighbors in map_json["borders"].items():
+            for neighbor in neighbors:
+                G.add_edge(territory, neighbor)
+        
+        plt.figure(figsize=(8, 8))
+        nx.draw_circular(G, with_labels=True, node_size=1000)
+        plt.title(map_json["name"])
+        plt.show()
