@@ -5,15 +5,14 @@ from src.train.rl_agent import RLAgent
 
 def train(map_name: str, num_players: int):
     ppo_trainer = RiskPPO(map_name, num_players)
-    ppo_trainer.train(total_timesteps=5000)
+    ppo_trainer.train(total_timesteps=10000)
     ppo_trainer.save("v1")
 
-def load_rl_agent(player_id: int, map_name: str, num_players: int) -> RLAgent:
+def load_rl_agent(map_name: str, num_players: int) -> RLAgent:
     ppo_trainer = RiskPPO(map_name, num_players)
     ppo_trainer.load("v1")
 
-    return RLAgent(player_id=player_id, risk_ppo=ppo_trainer)
-
+    return RLAgent(ppo_trainer)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a PPO agent for the Risk environment.")

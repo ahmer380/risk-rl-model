@@ -15,7 +15,7 @@ class TestGymEnvironment(unittest.TestCase):
         self.num_players = 6
         agent_composition = [RLAgent(None), CommunistAgent(), RandomAgent(), RandomAgent(), RandomAgent(), CommunistAgent()]
         self.classic_map = RiskMap.from_json("maps/classic.json")
-        self.runner = RiskGymEnvironment(self.classic_map, 6, agent_composition)
+        self.runner = RiskGymEnvironment(self.classic_map, agent_composition)
 
 class TestGymEnvironmentSimulation(TestGymEnvironment):
     def test_full_episode_run(self):
@@ -35,7 +35,7 @@ class TestGymEnvironmentSimulation(TestGymEnvironment):
         self.num_players = 2
         agent_composition = [RLAgent(None), RandomAgent()]
         self.classic_map = RiskMap.from_json("maps/mini.json")
-        self.runner = RiskGymEnvironment(self.classic_map, 2, agent_composition)
+        self.runner = RiskGymEnvironment(self.classic_map, agent_composition)
         observation, info = self.runner.reset()
 
         num_steps = 5000
