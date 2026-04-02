@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from src.agents.draft_strategy import DraftStrategy, RandomDraftStrategy, MinimumDeployStrategy, MaximumDeployStrategy
 from src.agents.attack_strategy import AttackStrategy, WeightedRandomAttackStrategy, SafeBattleStrategy, TransferMethod
@@ -50,11 +50,20 @@ class Agent(ABC):
 
         for subclass in cls.__subclasses__():
             subclass.reset_player_ids()
+    
+    @classmethod
+    @abstractmethod
+    def get_colour(cls) -> str:
+        """Return the colour associated with this agent for visualisation purposes."""
 
 class RandomAgent(Agent):
     """Selects a random action"""
     def __init__(self, battle_weight: float = 0.95):
         super().__init__(RandomDraftStrategy(), WeightedRandomAttackStrategy(battle_weight), RandomFortifyStrategy())
+    
+    @classmethod
+    def get_colour(cls) -> str:
+        return "green"
 
 class CommunistAgent(Agent):
     """Prioritises each territory equally, deploying/fortifying to the territory with the fewest troops at a given time"""
@@ -64,12 +73,20 @@ class CommunistAgent(Agent):
             SafeBattleStrategy(disparity=disparity, transfer_method=TransferMethod.SPLIT),
             MinimumFortifyStrategy()
         )
+    
+    @classmethod
+    def get_colour(cls) -> str:
+        return "red"
 
 class CapitalistAgent(Agent):
     """Concentrates troops on a small set of strong territories."""
-    def __init__(self, capitals: int = 3, disparity: int = 10):
+    def __init__(self, capitals: int = 1, disparity: int = 5):
         super().__init__(
             MaximumDeployStrategy(capitals),
             SafeBattleStrategy(disparity=disparity, transfer_method=TransferMethod.ALL),
             MaximumFortifyStrategy(capitals),
         )
+    
+    @classmethod
+    def get_colour(cls) -> str:
+        return "yellow"
