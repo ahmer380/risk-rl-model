@@ -71,47 +71,44 @@ class RiskGymEnvironment(gymnasium.Env):
 
         return observation, reward, terminated, truncated, info
 
-    def get_observation_space(self) -> gymnasium.Space: #TODO can be simplified?
+    def get_observation_space(self) -> gymnasium.Space:
         observation_space = gymnasium.spaces.Dict({
-            "active_players": gymnasium.spaces.MultiBinary(len(self.game_state.active_players)), 
-            "current_player": gymnasium.spaces.Discrete(len(self.game_state.active_players), dtype=np.uint8),
-            "current_phase": gymnasium.spaces.Discrete(3, dtype=np.uint8),
-            "territory_owners": gymnasium.spaces.Box( #TODO: consider one-hot encoding?
-                low=0, 
-                high=len(self.game_state.active_players) - 1, 
-                shape=(len(self.game_state.territory_owners),), 
-                dtype=np.uint8 
+            "current_phase": gymnasium.spaces.MultiBinary(3), # one-hot encoding of the current phase (deploy, attack, fortify)
+            "territories": gymnasium.spaces.Box( # [owned_by_rl_agent, troop_count_normalised] for each territory
+                low=0.0,
+                high=1.0,
+                shape=(len(self.risk_map.territories), 2), 
+                dtype=np.float32
             ),
-            "territory_troops": gymnasium.spaces.Box( #TODO: consider one-hot encoding?
-                low=0, 
-                high=65535, 
-                shape=(len(self.game_state.territory_troops),), 
-                dtype=np.uint16
+            "territory_card_count": gymnasium.spaces.Box( # normalised count of how many territory cards the RL agent has
+                low=0.0,
+                high=1.0,
+                shape=(1,), 
+                dtype=np.float32
             ),
-            "player_territory_cards": gymnasium.spaces.Box(
-                low=-1, 
-                high=len(self.game_state.territory_owners) - 1,
-                shape=(len(self.game_state.active_players), 5, 2), # player_territory_cards[player_id[territory_card_index]] = [combat_arm, territory_id]
-                dtype=np.int8
+            "deployment_troops": gymnasium.spaces.Box( # normalised count of how many troops the RL agent has available to deploy
+                low=0.0,
+                high=1.0,
+                shape=(1,),
+                dtype=np.float32
             ),
-            "trade_count": gymnasium.spaces.Discrete(65535, dtype=np.uint16),
-            "deployment_troops": gymnasium.spaces.Discrete(65535, dtype=np.uint16),
-            "current_territory_transfer": gymnasium.spaces.Box(
-                low=-1, 
-                high=len(self.game_state.territory_owners) - 1, 
-                shape=(2,), 
-                dtype=np.int8
-            ),
-            "current_fortify_route": gymnasium.spaces.Box(
-                low=-1, 
-                high=len(self.game_state.territory_owners) - 1, 
-                shape=(2,), 
-                dtype=np.int8
-            ),
-            "territory_captured_this_turn": gymnasium.spaces.MultiBinary(1)
         })
 
         return observation_space
+    
+    def encode_observation(self) -> dict:
+        owned_territory_cards = sum(1 if card is not None else 0 for card in self.game_state.player_territory_cards[self.get_rl_agent_turn_number()])
+        encoded_observation = {
+            "current_phase": np.arange(3) == self.game_state.current_phase.value,
+            "territories": np.array([
+                [int(territory_owner == self.get_rl_agent_turn_number()), min(troop_count / 100.0, 1.0)]
+                for territory_owner, troop_count in zip(self.game_state.territory_owners, self.game_state.territory_troops)
+            ], dtype=np.float32),
+            "territory_card_count": np.array([owned_territory_cards / 5.0], dtype=np.float32),
+            "deployment_troops": np.array([min(self.game_state.deployment_troops / 100.0, 1.0)], dtype=np.float32)
+        }
+
+        return encoded_observation
     
     def get_max_actions(self) -> int:
         return DeployAction.get_max_actions(self.risk_map) + \
@@ -127,23 +124,6 @@ class RiskGymEnvironment(gymnasium.Env):
             action_list = ActionList.get_action_list(self.game_state, self.risk_map)
             selected_action = self.agents[self.game_state.current_player].select_action(action_list, self.game_state, self.risk_map)
             self.game_state = selected_action.apply(self.game_state, self.risk_map)
-    
-    def encode_observation(self) -> dict:
-        encoded_observation = {
-            "active_players": np.array(self.game_state.active_players, dtype=np.uint8),
-            "current_player": np.uint8(self.game_state.current_player),
-            "current_phase": np.uint8(self.game_state.current_phase.value),
-            "territory_owners": np.array(self.game_state.territory_owners, dtype=np.uint8),
-            "territory_troops": np.array(self.game_state.territory_troops, dtype=np.uint16),
-            "player_territory_cards": np.array([[[card.combat_arm.value if card is not None else -1, card.territory_id if card is not None else -1] for card in player_cards] for player_cards in self.game_state.player_territory_cards], dtype=np.int8),
-            "trade_count": np.uint16(self.game_state.trade_count),
-            "deployment_troops": np.uint16(self.game_state.deployment_troops),
-            "current_territory_transfer": np.array(self.game_state.current_territory_transfer, dtype=np.int8),
-            "current_fortify_route": np.array(self.game_state.current_fortify_route, dtype=np.int8),
-            "territory_captured_this_turn": np.array([self.game_state.territory_captured_this_turn], dtype=np.uint8)
-        }
-
-        return encoded_observation
     
     def action_masks(self, action_list: ActionList = None) -> np.ndarray:
         action_mask = np.zeros(self.get_max_actions(), dtype=bool)
