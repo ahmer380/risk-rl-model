@@ -7,7 +7,7 @@ import gymnasium
 from src.agents.agent import Agent
 
 from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
-from src.environment.game_state import GameState
+from src.environment.game_state import GameState, GamePhase
 from src.environment.map import RiskMap
 
 from src.train.rl_agent import RLAgent
@@ -27,19 +27,21 @@ class RiskGymEnvironment(gymnasium.Env):
         
         self.episode_length = 0
         self.game_state = GameState(len(agent_composition), len(risk_map.territories), reset_to_initial_state=True)
+        self.game_state_at_start_of_rl_turn = None
         self.observation_space = self.get_observation_space()
         self.action_space = gymnasium.spaces.Discrete(self.get_max_actions(), dtype=np.uint16)
 
     def reset(self, seed: int=None):
         super().reset(seed=seed)
 
-        random.shuffle(self.agents)
+        # random.shuffle(self.agents)
         for agent in self.agents:
             agent.reset()
 
         self.episode_length = 0
         self.game_state.reset_to_initial_state()
         self.advance_to_rl_turn()
+        self.game_state_at_start_of_rl_turn = self.game_state.copy()
         observation = self.encode_observation()
         info = {}
 
@@ -149,28 +151,40 @@ class RiskGymEnvironment(gymnasium.Env):
         for action_class in [DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction]:
             max_actions = action_class.get_max_actions(self.risk_map)
             if offset <= action_index < offset + max_actions:
-                return action_class.decode_action(action_index - offset, self.risk_map)
+                return action_class.decode_action(int(action_index - offset), self.risk_map)
             
             offset += max_actions
     
     def calculate_reward(self, previous_state: GameState) -> float:
-        """Calculate the reward for the current state based on the previous state."""
-        if self.game_state.is_terminal_state():
-            return 1.0 if self.game_state.get_winner() == self.get_rl_agent_turn_number() else -1.0
-        
-        currently_owned_territories = self.game_state.get_player_owned_territory_ids(self.get_rl_agent_turn_number())
-        previously_owned_territories = previous_state.get_player_owned_territory_ids(self.get_rl_agent_turn_number())
-        territory_delta = len(currently_owned_territories) - len(previously_owned_territories)
-        troop_delta = sum(self.game_state.territory_troops[territory_id] for territory_id in currently_owned_territories) - sum(previous_state.territory_troops[territory_id] for territory_id in previously_owned_territories)
-        continent_bonus_delta = self.risk_map.get_player_continent_bonuses(self.get_rl_agent_turn_number(), self.game_state.territory_owners) - self.risk_map.get_player_continent_bonuses(self.get_rl_agent_turn_number(), previous_state.territory_owners)
-        eliminated_delta = sum(previous_state.active_players) - sum(self.game_state.active_players)
+        """Calculate the reward for the current state based on the previous state and action."""
+        if self.game_state.get_winner() == self.get_rl_agent_turn_number():
+            return 1.0
+        elif not self.game_state.active_players[self.get_rl_agent_turn_number()]:
+            return -1.0
+        elif previous_state.current_phase == GamePhase.FORTIFY and self.game_state.current_phase == GamePhase.DRAFT:
+            # Compare the game states between the start of the RL agent's nth and (n+1)th turns
+            currently_owned_territories = self.game_state.get_player_owned_territory_ids(self.get_rl_agent_turn_number())
+            currently_owned_troop_share = sum(self.game_state.territory_troops[territory_id] for territory_id in currently_owned_territories) /sum(self.game_state.territory_troops)
+            previously_owned_territories = self.game_state_at_start_of_rl_turn.get_player_owned_territory_ids(self.get_rl_agent_turn_number())
+            previously_owned_troop_share = sum(self.game_state_at_start_of_rl_turn.territory_troops[territory_id] for territory_id in previously_owned_territories) / sum(self.game_state_at_start_of_rl_turn.territory_troops)
 
-        return (
-            0.01 * territory_delta + 
-            0.0001 * troop_delta + 
-            0.1 * continent_bonus_delta + 
-            0.1 * eliminated_delta
-        )
+            # calculated normalised deltas
+            troop_share_delta = (currently_owned_troop_share - previously_owned_troop_share)
+            territory_delta = (len(currently_owned_territories) - len(previously_owned_territories)) / len(self.risk_map.territories)
+            continent_bonus_delta = (
+                self.risk_map.get_player_continent_bonuses(self.get_rl_agent_turn_number(), self.game_state.territory_owners) -
+                self.risk_map.get_player_continent_bonuses(self.get_rl_agent_turn_number(), self.game_state_at_start_of_rl_turn.territory_owners)
+            ) / self.risk_map.get_total_continent_bonuses()
+
+            self.game_state_at_start_of_rl_turn = self.game_state.copy()
+
+            return (
+                0.5 * troop_share_delta + 
+                0.6 * territory_delta + 
+                0.7 * continent_bonus_delta
+            )
+        else: # intra-turn actions, as well as stalemates, get no reward
+            return 0.0
     
     def get_rl_agent_turn_number(self) -> int:
         return next(i for i, agent in enumerate(self.agents) if agent == self.rl_agent)

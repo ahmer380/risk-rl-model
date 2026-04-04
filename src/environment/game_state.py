@@ -138,6 +138,6 @@ class GameState:
         lines.append(f"Territory troops = {self.territory_troops}")
 
         for player_i in range(len(self.active_players)):
-            lines.append(f"Player {player_i} owns {len(self.get_player_owned_territory_ids(player_i))} territories with {sum(self.territory_troops[i] for i in self.get_player_owned_territory_ids(player_i))} total troops, and {len(self.player_territory_cards[player_i])} territory cards.")
+            lines.append(f"Player {player_i} owns {len(self.get_player_owned_territory_ids(player_i))} territories with {sum(self.territory_troops[i] for i in self.get_player_owned_territory_ids(player_i))} total troops, and {sum(1 if card is not None else 0 for card in self.player_territory_cards[player_i])} territory cards.")
         
         return "\n".join(lines)
