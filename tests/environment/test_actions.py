@@ -2,7 +2,7 @@ import unittest
 
 from src.environment.game_state import GameState, GamePhase, CombatArm, TerritoryCard
 from src.environment.map import RiskMap
-from src.environment.actions import DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
+from src.environment.actions import DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
 
 class TestAction(unittest.TestCase):
     def setUp(self):
@@ -83,9 +83,9 @@ class TestTradeAction(TestAction):
         self.assertEqual(len(new_state.player_territory_cards[0]), 5)
         self.assertEqual(sum(1 for card in new_state.player_territory_cards[0] if card is not None), 1) # Ensure only 1 card remains
         self.assertEqual(new_state.player_territory_cards[0][0], tc[2])
-        self.assertEqual(new_state.deployment_troops, self.game_state.deployment_troops + 4) # First trade-in should give 4 troops 
+        self.assertEqual(new_state.deployment_troops, self.game_state.deployment_troops + 4) # First trade-in should give 4 troops
 
-class TestBattleAction(TestAction):
+class TestBattleFromAction(TestAction):
     def setUp(self):
         super().setUp()
 
@@ -95,67 +95,109 @@ class TestBattleAction(TestAction):
         self.game_state.territory_owners[0], self.game_state.territory_owners[1], self.game_state.territory_owners[2] = 0, 0, 0 # Player 0 owns Alaska, Alberta, and Central America
         self.game_state.territory_troops = [5] * len(self.game_state.territory_troops) 
         self.game_state.territory_troops[2] = 1 # Central America only has 1 troop, so it cannot be an attacker
+    
+    def test_get_battle_from_action_list(self):
+        actions = BattleFromAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 2)
+        self.assertEqual(self.classic_map.territories[actions[0].attacker_territory_id].name, "Alaska")
+        self.assertEqual(self.classic_map.territories[actions[1].attacker_territory_id].name, "Alberta")
+        for action in actions:
+            action.validate_action(self.game_state, self.classic_map)
+    
+    def test_get_battle_from_action_list_for_non_attack_phase(self):
+        self.game_state.current_phase = GamePhase.FORTIFY
+        actions = BattleFromAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 0)
+    
+    def test_get_battle_from_action_list_after_attacker_selection(self):
+        self.game_state.current_battle = (0, -1) 
+        actions = BattleFromAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 0)
+    
+    def test_get_battle_from_action_list_during_current_territory_transfer(self):
+        self.game_state.current_battle = (0, 5) 
+        actions = BattleFromAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 0)
+    
+    def test_apply_battle_from_action(self):
+        action = BattleFromAction(0)
+        new_state = action.apply(self.game_state, self.classic_map)
+
+        self.assertEqual(new_state.current_battle, (0, -1))
+
+class TestBattleToAction(TestAction):
+    def setUp(self):
+        super().setUp()
+
+        # Statically define territory ownership and troop counts to ensure consistent test results
+        self.game_state.current_phase = GamePhase.ATTACK
+        self.game_state.territory_owners = [1] * len(self.game_state.territory_owners)
+        self.game_state.territory_owners[0], self.game_state.territory_owners[1], self.game_state.territory_owners[2] = 0, 0, 0 # Player 0 owns Alaska and Alberta
+        self.game_state.territory_troops = [5] * len(self.game_state.territory_troops) 
+        self.game_state.current_battle = (0, -1) # Attacker territory has already been chosen as Alaska
 
         self.game_state.player_territory_cards[1][0] = TerritoryCard(CombatArm.WILD, 5)
         self.game_state.player_territory_cards[3][0] = TerritoryCard(CombatArm.INFANTRY, 2)
     
-    def test_get_battle_action_list(self):
-        actions = BattleAction.get_action_list(self.game_state, self.classic_map)
-        self.assertEqual(len(actions), 5)
-        self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alaska" and self.classic_map.territories[action.defender_territory_id].name == "Kamchatka" for action in actions))
-        self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alaska" and self.classic_map.territories[action.defender_territory_id].name == "Northwest Territory" for action in actions))
-        self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alberta" and self.classic_map.territories[action.defender_territory_id].name == "Northwest Territory" for action in actions))
-        self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alberta" and self.classic_map.territories[action.defender_territory_id].name == "Ontario" for action in actions))
-        self.assertTrue(any(self.classic_map.territories[action.attacker_territory_id].name == "Alberta" and self.classic_map.territories[action.defender_territory_id].name == "Western United States" for action in actions))
+    def test_get_battle_to_action_list(self):
+        actions = BattleToAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 2)
+        self.assertTrue(any(self.classic_map.territories[action.defender_territory_id].name == "Kamchatka" for action in actions))
+        self.assertTrue(any(self.classic_map.territories[action.defender_territory_id].name == "Northwest Territory" for action in actions))
         for action in actions:
             action.validate_action(self.game_state, self.classic_map)
     
-    def test_get_battle_action_list_for_non_attack_phase(self):
+    def test_get_battle_to_action_list_for_non_attack_phase(self):
         self.game_state.current_phase = GamePhase.FORTIFY
-        actions = BattleAction.get_action_list(self.game_state, self.classic_map)
+        actions = BattleToAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0)
     
-    def test_get_battle_action_list_during_current_territory_transfer(self):
-        self.game_state.current_territory_transfer = (0, 5) 
-        actions = BattleAction.get_action_list(self.game_state, self.classic_map)
-        self.assertEqual(len(actions), 0) # Cannot initiate another attack while a territory transfer is still pending resolution
+    def test_get_battle_to_action_list_before_battle_from_action(self):
+        self.game_state.current_battle = (-1, -1) 
+        actions = BattleToAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 0)
     
-    def test_apply_battle_action_loss(self):
+    def test_get_battle_to_action_list_during_current_territory_transfer(self):
+        self.game_state.current_battle = (0, 5) 
+        actions = BattleToAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 0)
+    
+    def test_apply_battle_to_action_loss(self):
         self.game_state.territory_troops[0] = 2
-        self.game_state.territory_troops[5] = 10
-        action = BattleAction(0, 5) # Attack from Alaska to Kamchatka, where P(Win) = 0
+        self.game_state.territory_troops[5] = 100
+        action = BattleToAction(5) # Attack from Alaska to Kamchatka, where P(Win) = 0
         new_state = action.apply(self.game_state, self.classic_map)
         
         self.assertEqual(new_state.territory_troops[0], 1) # Attacker should lose all but 1 troop
         self.assertEqual(new_state.territory_owners[5], 1) 
-        self.assertLessEqual(new_state.territory_troops[5], 10)
-        self.assertEqual(new_state.current_territory_transfer, (-1, -1))
+        self.assertLessEqual(new_state.territory_troops[5], 100)
+        self.assertEqual(new_state.current_battle, (-1, -1))
         self.assertEqual(new_state.territory_captured_this_turn, False)
     
-    def test_apply_battle_action_win_but_no_elimination(self):
-        self.game_state.territory_troops[0] = 10
+    def test_apply_battle_to_action_win_but_no_elimination(self):
+        self.game_state.territory_troops[0] = 100
         self.game_state.territory_troops[5] = 1
-        action = BattleAction(0, 5) # Attack from Alaska to Kamchatka, where P(Win) = 1
+        action = BattleToAction(5) # Attack from Alaska to Kamchatka, where P(Win) = 1
         new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertGreaterEqual(new_state.territory_troops[0], 2)
         self.assertEqual(new_state.territory_troops[5], 0)
-        self.assertEqual(new_state.current_territory_transfer, (0, 5))
+        self.assertEqual(new_state.current_battle, (0, 5))
         self.assertEqual(new_state.territory_captured_this_turn, True)
         self.assertEqual(new_state.active_players[1], True) # Defender should still be active since they own other territories
         self.assertEqual(sum(1 for card in new_state.player_territory_cards[1] if card is not None), 1)
         self.assertEqual(new_state.player_territory_cards[0], [None] * 5)
     
-    def test_apply_battle_action_win_and_elimination(self):
+    def test_apply_battle_to_action_win_and_elimination(self):
         self.game_state.territory_owners[5] = 3 # Only difference is that we make the defender be player 3, who only owns this territory
-        self.game_state.territory_troops[0] = 10
+        self.game_state.territory_troops[0] = 100
         self.game_state.territory_troops[5] = 1
-        action = BattleAction(0, 5) # Attack from Alaska to Kamchatka, where P(Win) = 1
+        action = BattleToAction(5) # Attack from Alaska to Kamchatka, where P(Win) = 1
         new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertGreaterEqual(new_state.territory_troops[0], 2)
         self.assertEqual(new_state.territory_troops[5], 0)
-        self.assertEqual(new_state.current_territory_transfer, (0, 5))
+        self.assertEqual(new_state.current_battle, (0, 5))
         self.assertEqual(new_state.territory_captured_this_turn, True)
         self.assertEqual(new_state.active_players[3], False) # Defender should be eliminated since they own no other territories
         self.assertEqual(new_state.player_territory_cards[3], [None] * 5)
@@ -166,7 +208,7 @@ class TestTransferAction(TestAction):
         super().setUp()
 
         self.game_state.current_phase = GamePhase.ATTACK
-        self.game_state.current_territory_transfer = (0, 5)
+        self.game_state.current_battle = (0, 5)
         self.game_state.territory_owners[0] = 0
         self.game_state.territory_troops[0] = 7
         self.game_state.territory_owners[5] = 0
@@ -190,7 +232,11 @@ class TestTransferAction(TestAction):
             self.assertEqual(action.troop_count, i + 1)
     
     def test_get_transfer_action_list_while_no_territory_transfer_pending(self):
-        self.game_state.current_territory_transfer = (-1, -1)
+        self.game_state.current_battle = (-1, -1)
+        actions = TransferAction.get_action_list(self.game_state, self.classic_map)
+        self.assertEqual(len(actions), 0)
+
+        self.game_state.current_battle = (0, -1)
         actions = TransferAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0)
     
@@ -205,7 +251,7 @@ class TestTransferAction(TestAction):
 
         self.assertEqual(new_state.territory_troops[0], 4)
         self.assertEqual(new_state.territory_troops[5], 3)
-        self.assertEqual(new_state.current_territory_transfer, (-1, -1))
+        self.assertEqual(new_state.current_battle, (-1, -1))
     
     def test_apply_max_transfer_action(self):
         self.game_state.territory_troops[0] = 150
@@ -214,7 +260,7 @@ class TestTransferAction(TestAction):
 
         self.assertEqual(new_state.territory_troops[0], 1)
         self.assertEqual(new_state.territory_troops[5], 149)
-        self.assertEqual(new_state.current_territory_transfer, (-1, -1))
+        self.assertEqual(new_state.current_battle, (-1, -1))
 
 class TestFortifyRouteAction(TestAction):
     def setUp(self):
@@ -328,7 +374,7 @@ class TestSkipAction(TestAction):
     
     def test_get_skip_action_list_after_battle_win(self):
         self.game_state.current_phase = GamePhase.ATTACK
-        self.game_state.current_territory_transfer = (0, 5)
+        self.game_state.current_battle = (0, 5)
         actions = SkipAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0)
     

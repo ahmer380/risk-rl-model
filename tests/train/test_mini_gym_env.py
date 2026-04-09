@@ -6,7 +6,7 @@ import gymnasium
 
 from src.agents.agent import CommunistAgent
 
-from src.environment.actions import DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
+from src.environment.actions import DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
 from src.environment.map import RiskMap
 
 from src.train.rl_agent import RLAgent
@@ -52,13 +52,14 @@ class TestGymEnvInitialisation(TestMiniGymEnv):
     def test_max_actions(self):
         self.assertEqual(DeployAction.get_max_actions(self.mini_map), 8)
         self.assertEqual(TradeAction.get_max_actions(self.mini_map), 10)
-        self.assertEqual(BattleAction.get_max_actions(self.mini_map), 64)
+        self.assertEqual(BattleFromAction.get_max_actions(self.mini_map), 8)
+        self.assertEqual(BattleToAction.get_max_actions(self.mini_map), 8)
         self.assertEqual(TransferAction.get_max_actions(self.mini_map), 101)
         self.assertEqual(FortifyRouteAction.get_max_actions(self.mini_map), 64)
         self.assertEqual(FortifyAmountAction.get_max_actions(self.mini_map), 101)
         self.assertEqual(SkipAction.get_max_actions(self.mini_map), 1)
-        self.assertEqual(self.runner.get_max_actions(), 349)
-        self.assertEqual(self.runner.action_space.n, 349)
+        self.assertEqual(self.runner.get_max_actions(), 301)
+        self.assertEqual(self.runner.action_space.n, 301)
     
     def test_observation_space(self):
         observation_space = self.runner.observation_space
@@ -122,31 +123,38 @@ class TestEncodeAndDecodeActions(TestMiniGymEnv):
         decoded = self.runner.decode_action(encoded)
         self.assertEqual(decoded, trade_action)
     
-    def test_encode_and_decode_battle_action(self):
-        battle_action = BattleAction(2, 7)
-        encoded = self.runner.encode_action(battle_action)
-        self.assertEqual(encoded, 8 + 10 + 23)
+    def test_encode_and_decode_battle_from_action(self):
+        battle_from_action = BattleFromAction(2)
+        encoded = self.runner.encode_action(battle_from_action)
+        self.assertEqual(encoded, 8 + 10 + 2)
         decoded = self.runner.decode_action(encoded)
-        self.assertEqual(decoded, battle_action)
+        self.assertEqual(decoded, battle_from_action)
     
+    def test_encode_and_decode_battle_to_action(self):
+        battle_to_action = BattleToAction(7)
+        encoded = self.runner.encode_action(battle_to_action)
+        self.assertEqual(encoded, 8 + 10 + 8 + 7)
+        decoded = self.runner.decode_action(encoded)
+        self.assertEqual(decoded, battle_to_action)
+
     def test_encode_and_decode_transfer_action(self):
         transfer_action = TransferAction(4)
         encoded = self.runner.encode_action(transfer_action)
-        self.assertEqual(encoded, 8 + 10 + 64 + 4)
+        self.assertEqual(encoded, 8 + 10 + 8 + 8 + 4)
         decoded = self.runner.decode_action(encoded)
         self.assertEqual(decoded, transfer_action)
     
     def test_encode_and_decode_fortify_route_action(self):
         fortify_route_action = FortifyRouteAction(0, 7)
         encoded = self.runner.encode_action(fortify_route_action)
-        self.assertEqual(encoded, 8 + 10 + 64 + 101 + 7)
+        self.assertEqual(encoded, 8 + 10 + 8 + 8 + 101 + 7)
         decoded = self.runner.decode_action(encoded)
         self.assertEqual(decoded, fortify_route_action)
     
     def test_encode_and_decode_fortify_amount_action(self):
         fortify_amount_action = FortifyAmountAction(6)
         encoded = self.runner.encode_action(fortify_amount_action)
-        self.assertEqual(encoded, 8 + 10 + 64 + 101 + 64 + 6)
+        self.assertEqual(encoded, 8 + 10 + 8 + 8 + 101 + 64 + 6)
         decoded = self.runner.decode_action(encoded)
         self.assertEqual(decoded, fortify_amount_action)
     

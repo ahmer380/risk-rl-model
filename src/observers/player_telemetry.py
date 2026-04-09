@@ -1,4 +1,4 @@
-from src.environment.actions import DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
+from src.environment.actions import DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
 
 class BattleLog:
     def __init__(
@@ -36,7 +36,8 @@ class PlayerTelemetry:
         self.action_counts: dict[str, tuple[list[int], list[int]]] = {
             DeployAction.get_name(): ([], []),
             TradeAction.get_name(): ([], []),
-            BattleAction.get_name(): ([], []),
+            BattleFromAction.get_name(): ([], []),
+            BattleToAction.get_name(): ([], []),
             TransferAction.get_name(): ([], []),
             FortifyRouteAction.get_name(): ([], []),
             FortifyAmountAction.get_name(): ([], []),

@@ -4,7 +4,7 @@ from tabulate import tabulate
 
 from collections import defaultdict
 
-from src.environment.actions import Action, BattleAction
+from src.environment.actions import Action, BattleFromAction, BattleToAction
 from src.environment.game_state import GameState
 from src.environment.map import Territory
 
@@ -14,20 +14,24 @@ from src.observers.player_telemetry import PlayerTelemetry, BattleLog
 class BattleObserver(Observer):
     """Observer for tracking battle events for experimental analysis."""
     def on_action_taken(self, action: Action, previous_state: GameState, current_state: GameState, _: float):
-        if isinstance(action, BattleAction):
+        if isinstance(action, BattleFromAction):
+            self.current_battle_from_action = action
+            
+        if isinstance(action, BattleToAction):
             battle_log = BattleLog(
                 turn_number=self.core_observer.turn_count,
                 attacker_player_id=previous_state.current_player,
-                attacker_territory_id=action.attacker_territory_id,
-                attacker_troops=previous_state.territory_troops[action.attacker_territory_id],
+                attacker_territory_id=self.current_battle_from_action.attacker_territory_id,
+                attacker_troops=previous_state.territory_troops[self.current_battle_from_action.attacker_territory_id],
                 defender_player_id=previous_state.territory_owners[action.defender_territory_id],
                 defender_territory_id=action.defender_territory_id,
                 defender_troops=previous_state.territory_troops[action.defender_territory_id],
-                successful_battle=current_state.current_territory_transfer == (action.attacker_territory_id, action.defender_territory_id)
+                successful_battle=current_state.current_battle == (self.current_battle_from_action.attacker_territory_id, action.defender_territory_id)
             )
 
             self.core_observer.player_telemetries[battle_log.attacker_player_id].attacks.append(battle_log)
             self.core_observer.player_telemetries[battle_log.defender_player_id].defenses.append(battle_log)
+            self.current_battle_from_action = None
     
     def summarise_game(self) -> str:
         lines = ["#### Battle Observations ####"]

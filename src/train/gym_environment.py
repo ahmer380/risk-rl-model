@@ -1,12 +1,10 @@
-import random
-
 import numpy as np
 
 import gymnasium
 
 from src.agents.agent import Agent
 
-from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
+from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
 from src.environment.game_state import GameState, GamePhase
 from src.environment.map import RiskMap
 
@@ -115,7 +113,8 @@ class RiskGymEnvironment(gymnasium.Env):
     def get_max_actions(self) -> int:
         return DeployAction.get_max_actions(self.risk_map) + \
                TradeAction.get_max_actions(self.risk_map) + \
-               BattleAction.get_max_actions(self.risk_map) + \
+               BattleFromAction.get_max_actions(self.risk_map) + \
+               BattleToAction.get_max_actions(self.risk_map) + \
                TransferAction.get_max_actions(self.risk_map) + \
                FortifyRouteAction.get_max_actions(self.risk_map) + \
                FortifyAmountAction.get_max_actions(self.risk_map) + \
@@ -140,7 +139,7 @@ class RiskGymEnvironment(gymnasium.Env):
     
     def encode_action(self, action: Action) -> int:
         offset = 0
-        for action_class in [DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction]:
+        for action_class in [DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction]:
             if isinstance(action, action_class):
                 return offset + action.encode_action(self.risk_map)
             
@@ -148,7 +147,7 @@ class RiskGymEnvironment(gymnasium.Env):
 
     def decode_action(self, action_index: int) -> Action:
         offset = 0
-        for action_class in [DeployAction, TradeAction, BattleAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction]:
+        for action_class in [DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction]:
             max_actions = action_class.get_max_actions(self.risk_map)
             if offset <= action_index < offset + max_actions:
                 return action_class.decode_action(int(action_index - offset), self.risk_map)
