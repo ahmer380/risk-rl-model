@@ -1,20 +1,12 @@
 import random
 
-from enum import Enum
-
 from abc import ABC, abstractmethod
 
 from src.agents.strategy import Strategy
 
-from src.environment.actions import Action, ActionList, BattleFromAction, BattleToAction, TransferAction, SkipAction
+from src.environment.actions import TransferMethod, Action, ActionList, BattleFromAction, BattleToAction, TransferAction, SkipAction
 from src.environment.game_state import GameState
 from src.environment.map import RiskMap
-
-class TransferMethod(Enum):
-    RANDOM = 0
-    ONE = 1
-    ALL = 2
-    SPLIT = 3
 
 class AttackStrategy(Strategy, ABC):
     def __init__(self, transfer_method: TransferMethod):
@@ -34,23 +26,11 @@ class AttackStrategy(Strategy, ABC):
 
             return battle_to_action
         elif valid_actions.transfer_actions:
-            return self.select_transfer_action(valid_actions)
+            return TransferAction(self.transfer_method)
         elif valid_actions.skip_actions:
             return valid_actions.skip_actions[0]
         else:
             raise ValueError("No valid attacking actions available, but the attack strategy was called")
-
-    def select_transfer_action(self, valid_actions: ActionList) -> Action:
-        """Selects a transfer action based on the specified transfer method"""
-        if self.transfer_method == TransferMethod.RANDOM:
-            return random.choice(valid_actions.transfer_actions)
-        elif self.transfer_method == TransferMethod.ONE:
-            return min(valid_actions.transfer_actions, key=lambda action: action.troop_count) # should be 1
-        elif self.transfer_method == TransferMethod.ALL:
-            return max(valid_actions.transfer_actions, key=lambda action: action.troop_count) # should be territory_troops[attacker] - 1
-        elif self.transfer_method == TransferMethod.SPLIT:
-            troop_count = (max(action.troop_count for action in valid_actions.transfer_actions) + 1) // 2
-            return TransferAction(troop_count)
     
     @abstractmethod
     def compute_best_battle(self, valid_actions: ActionList, game_state: GameState, risk_map: RiskMap) -> tuple[BattleFromAction, BattleToAction]:

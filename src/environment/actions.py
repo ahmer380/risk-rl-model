@@ -1,6 +1,7 @@
 import random
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Self
 from itertools import combinations
 
@@ -11,8 +12,11 @@ from src.utils.blitz_battle_simulator import BlitzBattleSimulator
 
 battle_simulator = BlitzBattleSimulator()
 
-MAX_TROOP_TRANSFER = 100 # Arbitrary cap on troop transfer/fortifyAmount actions. If 100, then transfer the maximum possible troops.
-# TODO: Rework as percentage for all values? or some? (50%, 25% etc.)
+class TransferMethod(Enum):
+    RANDOM = 0
+    ONE = 1
+    SPLIT = 2
+    ALL = 3
 
 class Action(ABC):    
     @abstractmethod
@@ -305,18 +309,22 @@ class BattleToAction(Action):
         return isinstance(other, BattleToAction) and self.defender_territory_id == other.defender_territory_id
 
 class TransferAction(Action):
-    def __init__(self, troop_count: int):
-        self.troop_count = troop_count
-    
+    def __init__(self, transfer_method: TransferMethod):
+        self.transfer_method = transfer_method
+
     def apply(self, game_state: GameState, _: RiskMap) -> GameState:
         self.validate_action(game_state, _)
         new_state = game_state.copy()
 
-        if self.troop_count == MAX_TROOP_TRANSFER:
-            troops_to_transfer = new_state.territory_troops[new_state.current_battle[0]] - 1
-        else:
-            troops_to_transfer = self.troop_count
-        
+        if self.transfer_method == TransferMethod.RANDOM:
+            troops_to_transfer = random.randint(1, game_state.territory_troops[game_state.current_battle[0]] - 1)
+        elif self.transfer_method == TransferMethod.ONE:
+            troops_to_transfer = 1
+        elif self.transfer_method == TransferMethod.SPLIT:
+            troops_to_transfer = game_state.territory_troops[game_state.current_battle[0]] // 2
+        elif self.transfer_method == TransferMethod.ALL:
+            troops_to_transfer = game_state.territory_troops[game_state.current_battle[0]] - 1
+
         new_state.territory_troops[new_state.current_battle[0]] -= troops_to_transfer
         new_state.territory_troops[new_state.current_battle[1]] += troops_to_transfer
         new_state.current_battle = (-1, -1)
@@ -326,36 +334,35 @@ class TransferAction(Action):
     def validate_action(self, game_state: GameState, risk_map: RiskMap):
         assert game_state.current_phase == GamePhase.ATTACK, "Can only apply TransferAction during attack phase"
         assert game_state.current_battle[0] != -1 and game_state.current_battle[1] != -1, "No territory transfer to resolve"
-        assert 0 < self.troop_count < game_state.territory_troops[game_state.current_battle[0]], "Invalid troop count to transfer"
         assert 0 <= self.encode_action(risk_map) < self.get_max_actions(risk_map), "Encoded action index out of bounds"
     
     def encode_action(self, _: RiskMap) -> int:
-        return self.troop_count
+        return self.transfer_method.value
     
     @classmethod
     def decode_action(cls, action_index: int, _: RiskMap) -> Self:
-        return cls(action_index)
+        return cls(TransferMethod(action_index))
 
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
         if game_state.current_phase != GamePhase.ATTACK or game_state.current_battle[0] == -1 or game_state.current_battle[1] == -1:
             return []
         
-        return [cls(troop_count) for troop_count in range(1, min(MAX_TROOP_TRANSFER + 1, game_state.territory_troops[game_state.current_battle[0]]))]
+        return [cls(transfer_method) for transfer_method in TransferMethod]
     
     @classmethod
     def get_max_actions(cls, _: RiskMap) -> int:
-        return MAX_TROOP_TRANSFER + 1 # 0-100 inclusive (although 0 is an invalid action)
+        return len(TransferMethod)
 
     @classmethod
     def get_name(cls) -> str:
         return "TransferAction"
     
     def __repr__(self):
-        return f"TransferAction(troop_count={self.troop_count})"
+        return f"TransferAction(transfer_method={self.transfer_method.name})"
 
     def __eq__(self, other):
-        return isinstance(other, TransferAction) and self.troop_count == other.troop_count
+        return isinstance(other, TransferAction) and self.transfer_method == other.transfer_method
 
 class FortifyFromAction(Action):
     def __init__(self, from_territory_id: int):
@@ -469,20 +476,24 @@ class FortifyToAction(Action):
         return isinstance(other, FortifyToAction) and self.to_territory_id == other.to_territory_id
 
 class FortifyAmountAction(Action):
-    def __init__(self, troop_count: int):
-        self.troop_count = troop_count
-    
+    def __init__(self, transfer_method: TransferMethod):
+        self.transfer_method = transfer_method
+
     def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
         self.validate_action(game_state, risk_map)
         new_state = game_state.copy()
 
-        if self.troop_count == MAX_TROOP_TRANSFER:
-            troops_to_fortify = new_state.territory_troops[new_state.current_fortify[0]] - 1
-        else:
-            troops_to_fortify = self.troop_count
+        if self.transfer_method == TransferMethod.RANDOM:
+            troops_to_transfer = random.randint(1, game_state.territory_troops[game_state.current_fortify[0]] - 1)
+        elif self.transfer_method == TransferMethod.ONE:
+            troops_to_transfer = 1
+        elif self.transfer_method == TransferMethod.SPLIT:
+            troops_to_transfer = max(1, (game_state.territory_troops[game_state.current_fortify[0]] - game_state.territory_troops[game_state.current_fortify[1]]) // 2)
+        elif self.transfer_method == TransferMethod.ALL:
+            troops_to_transfer = game_state.territory_troops[game_state.current_fortify[0]] - 1
 
-        new_state.territory_troops[new_state.current_fortify[1]] += troops_to_fortify
-        new_state.territory_troops[new_state.current_fortify[0]] -= troops_to_fortify
+        new_state.territory_troops[new_state.current_fortify[1]] += troops_to_transfer
+        new_state.territory_troops[new_state.current_fortify[0]] -= troops_to_transfer
         new_state.current_fortify = (-1, -1)
         
         return SkipAction().apply(new_state, risk_map) # Skip to end turn after fortifying
@@ -490,22 +501,21 @@ class FortifyAmountAction(Action):
     def validate_action(self, game_state: GameState, risk_map: RiskMap):
         assert game_state.current_phase == GamePhase.FORTIFY, "Can only apply FortifyAmountAction during fortify phase"
         assert game_state.current_fortify[0] != -1 and game_state.current_fortify[1] != -1, "No fortify to resolve"
-        assert 0 < self.troop_count < game_state.territory_troops[game_state.current_fortify[0]] or self.troop_count == MAX_TROOP_TRANSFER, "Invalid troop count to fortify"
         assert 0 <= self.encode_action(risk_map) < self.get_max_actions(risk_map), "Encoded action index out of bounds"
     
     def encode_action(self, _: RiskMap) -> int:
-        return self.troop_count
+        return self.transfer_method.value
     
     @classmethod
     def decode_action(cls, action_index: int, _: RiskMap) -> Self:
-        return cls(action_index)
+        return cls(TransferMethod(action_index))
 
     @classmethod
     def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
         if game_state.current_phase != GamePhase.FORTIFY or game_state.current_fortify[0] == -1 or game_state.current_fortify[1] == -1:
             return []
         
-        return [cls(troop_count) for troop_count in range(1, min(MAX_TROOP_TRANSFER + 1, game_state.territory_troops[game_state.current_fortify[0]]))]
+        return [cls(transfer_method) for transfer_method in TransferMethod]
     
     @classmethod
     def get_name(cls) -> str:
@@ -513,13 +523,13 @@ class FortifyAmountAction(Action):
     
     @classmethod
     def get_max_actions(cls, _: RiskMap) -> int:
-        return MAX_TROOP_TRANSFER + 1 # 0-100 inclusive (although 0 is an invalid action)
+        return len(TransferMethod)
     
     def __repr__(self):
-        return f"FortifyAmountAction(troop_count={self.troop_count})"
+        return f"FortifyAmountAction(transfer_method={self.transfer_method.name})"
     
     def __eq__(self, other):
-        return isinstance(other, FortifyAmountAction) and self.troop_count == other.troop_count
+        return isinstance(other, FortifyAmountAction) and self.transfer_method == other.transfer_method
 
 class SkipAction(Action):
     def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:

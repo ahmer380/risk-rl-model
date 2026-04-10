@@ -2,7 +2,7 @@ import unittest
 
 from src.environment.game_state import GameState, GamePhase, CombatArm, TerritoryCard
 from src.environment.map import RiskMap
-from src.environment.actions import DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction
+from src.environment.actions import TransferMethod, DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction
 
 class TestAction(unittest.TestCase):
     def setUp(self):
@@ -209,27 +209,17 @@ class TestTransferAction(TestAction):
 
         self.game_state.current_phase = GamePhase.ATTACK
         self.game_state.current_battle = (0, 5)
-        self.game_state.territory_owners[0] = 0
-        self.game_state.territory_troops[0] = 7
-        self.game_state.territory_owners[5] = 0
-        self.game_state.territory_troops[5] = 0
+        self.game_state.territory_owners[0], self.game_state.territory_troops[0] = 0, 7
+        self.game_state.territory_owners[5], self.game_state.territory_troops[5] = 0, 0
     
     def test_get_transfer_action_list(self):
         actions = TransferAction.get_action_list(self.game_state, self.classic_map)
         
-        self.assertEqual(len(actions), 6)
-        for i, action in enumerate(actions):
-            action.validate_action(self.game_state, self.classic_map)
-            self.assertEqual(action.troop_count, i + 1)
-    
-    def test_get_transfer_action_list_for_over_max_troop_count(self):
-        self.game_state.territory_troops[0] = 150
-        actions = TransferAction.get_action_list(self.game_state, self.classic_map)
-        
-        self.assertEqual(len(actions), 100)
-        for i, action in enumerate(actions):
-            action.validate_action(self.game_state, self.classic_map)
-            self.assertEqual(action.troop_count, i + 1)
+        self.assertEqual(len(actions), 4)
+        self.assertTrue(any(action.transfer_method == TransferMethod.RANDOM for action in actions))
+        self.assertTrue(any(action.transfer_method == TransferMethod.ONE for action in actions))
+        self.assertTrue(any(action.transfer_method == TransferMethod.SPLIT for action in actions))
+        self.assertTrue(any(action.transfer_method == TransferMethod.ALL for action in actions))
     
     def test_get_transfer_action_list_while_no_territory_transfer_pending(self):
         self.game_state.current_battle = (-1, -1)
@@ -245,21 +235,40 @@ class TestTransferAction(TestAction):
         actions = TransferAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0)
     
-    def test_apply_transfer_action(self):
-        action = TransferAction(3)
+    def test_apply_random_transfer_action(self):
+        action = TransferAction(TransferMethod.RANDOM)
+
+        expected_troop_counts = {(6, 1), (5, 2), (4, 3), (3, 4), (2, 5), (1, 6)}
+        actual_troop_counts = set()
+        for _ in range(100):
+            new_state = action.apply(self.game_state, self.classic_map)
+            actual_troop_counts.add((new_state.territory_troops[0], new_state.territory_troops[5]))
+            self.assertEqual(new_state.current_battle, (-1, -1))
+        
+        self.assertEqual(expected_troop_counts, actual_troop_counts)
+    
+    def test_apply_one_transfer_action(self):
+        action = TransferAction(TransferMethod.ONE)
+        new_state = action.apply(self.game_state, self.classic_map)
+
+        self.assertEqual(new_state.territory_troops[0], 6)
+        self.assertEqual(new_state.territory_troops[5], 1)
+        self.assertEqual(new_state.current_battle, (-1, -1))
+    
+    def test_apply_split_transfer_action(self):
+        action = TransferAction(TransferMethod.SPLIT)
         new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertEqual(new_state.territory_troops[0], 4)
         self.assertEqual(new_state.territory_troops[5], 3)
         self.assertEqual(new_state.current_battle, (-1, -1))
     
-    def test_apply_max_transfer_action(self):
-        self.game_state.territory_troops[0] = 150
-        action = TransferAction(100)
+    def test_apply_all_transfer_action(self):
+        action = TransferAction(TransferMethod.ALL)
         new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertEqual(new_state.territory_troops[0], 1)
-        self.assertEqual(new_state.territory_troops[5], 149)
+        self.assertEqual(new_state.territory_troops[5], 6)
         self.assertEqual(new_state.current_battle, (-1, -1))
 
 class TestFortifyFromAction(TestAction):
@@ -340,24 +349,20 @@ class TestFortifyAmountAction(TestAction):
         super().setUp()
 
         self.game_state.current_phase = GamePhase.FORTIFY
-        self.game_state.territory_troops = [5] * len(self.game_state.territory_troops) 
         self.game_state.territory_owners = [0] * len(self.game_state.territory_owners)
+        self.game_state.territory_troops[0] = 10
+        self.game_state.territory_troops[1] = 3
+
         self.game_state.current_fortify = (0, 1)
         
     def test_get_fortify_amount_action_list(self):
         actions = FortifyAmountAction.get_action_list(self.game_state, self.classic_map)
+
         self.assertEqual(len(actions), 4)
-        for i, action in enumerate(actions):
-            action.validate_action(self.game_state, self.classic_map)
-            self.assertEqual(action.troop_count, i + 1)
-    
-    def test_get_fortify_amount_action_list_for_over_max_troop_count(self):
-        self.game_state.territory_troops[0] = 150
-        actions = FortifyAmountAction.get_action_list(self.game_state, self.classic_map)
-        self.assertEqual(len(actions), 100)
-        for i, action in enumerate(actions):
-            action.validate_action(self.game_state, self.classic_map)
-            self.assertEqual(action.troop_count, i + 1)
+        self.assertTrue(any(action.transfer_method == TransferMethod.RANDOM for action in actions))
+        self.assertTrue(any(action.transfer_method == TransferMethod.ONE for action in actions))
+        self.assertTrue(any(action.transfer_method == TransferMethod.SPLIT for action in actions))
+        self.assertTrue(any(action.transfer_method == TransferMethod.ALL for action in actions))
     
     def test_get_fortify_amount_action_list_while_no_fortify_route_pending(self):
         self.game_state.current_fortify = (-1, -1)
@@ -373,24 +378,52 @@ class TestFortifyAmountAction(TestAction):
         actions = FortifyAmountAction.get_action_list(self.game_state, self.classic_map)
         self.assertEqual(len(actions), 0)
     
-    def test_apply_fortify_amount_action(self):
-        action = FortifyAmountAction(3)
+    def test_apply_random_fortify_amount_action(self):
+        action = FortifyAmountAction(TransferMethod.RANDOM)
+
+        expected_troop_counts = {(9, 4), (8, 5), (7, 6), (6, 7), (5, 8), (4, 9), (3, 10), (2, 11), (1, 12)}
+        actual_troop_counts = set()
+        for _ in range(100):
+            new_state = action.apply(self.game_state, self.classic_map)
+            actual_troop_counts.add((new_state.territory_troops[0], new_state.territory_troops[1]))
+            self.assertEqual(new_state.current_battle, (-1, -1))
+        
+        self.assertEqual(expected_troop_counts, actual_troop_counts)
+    
+    def test_apply_one_fortify_amount_action(self):
+        action = FortifyAmountAction(TransferMethod.ONE)
         new_state = action.apply(self.game_state, self.classic_map)
 
-        self.assertEqual(new_state.territory_troops[0], 2)
-        self.assertEqual(new_state.territory_troops[1], 8)
-        self.assertEqual(new_state.current_phase, GamePhase.DRAFT)
-        self.assertEqual(new_state.current_player, 1)
+        self.assertEqual(new_state.territory_troops[0], 9)
+        self.assertEqual(new_state.territory_troops[1], 4)
+        self.assertEqual(new_state.current_battle, (-1, -1))
     
-    def test_apply_max_fortify_amount_action(self):
-        self.game_state.territory_troops[0] = 150
-        action = FortifyAmountAction(100)
+    def test_apply_split_fortify_amount_action(self):
+        action = FortifyAmountAction(TransferMethod.SPLIT)
+        new_state = action.apply(self.game_state, self.classic_map)
+
+        self.assertEqual(new_state.territory_troops[0], 7)
+        self.assertEqual(new_state.territory_troops[1], 6)
+        self.assertEqual(new_state.current_battle, (-1, -1))
+    
+    def test_apply_split_fortify_amount_action_to_territory_with_more_troops(self):
+        self.game_state.territory_troops[0] = 3
+        self.game_state.territory_troops[1] = 10
+
+        action = FortifyAmountAction(TransferMethod.SPLIT)
+        new_state = action.apply(self.game_state, self.classic_map)
+
+        self.assertEqual(new_state.territory_troops[0], 2) # move the minimum number of troops to keep the split, which is 1
+        self.assertEqual(new_state.territory_troops[1], 11)
+        self.assertEqual(new_state.current_battle, (-1, -1))
+    
+    def test_apply_all_fortify_amount_action(self):
+        action = FortifyAmountAction(TransferMethod.ALL)
         new_state = action.apply(self.game_state, self.classic_map)
 
         self.assertEqual(new_state.territory_troops[0], 1)
-        self.assertEqual(new_state.territory_troops[1], 154)
-        self.assertEqual(new_state.current_phase, GamePhase.DRAFT)
-        self.assertEqual(new_state.current_player, 1)
+        self.assertEqual(new_state.territory_troops[1], 12)
+        self.assertEqual(new_state.current_battle, (-1, -1))
 
 class TestSkipAction(TestAction):
     def setUp(self):

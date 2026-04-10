@@ -17,7 +17,6 @@ class TestAttackStrategy(unittest.TestCase):
         self.game_state.current_phase = GamePhase.ATTACK
         self.game_state.deployment_troops = 0
         self.game_state.current_battle = (-1, -1)
-        self.game_state.current_fortify_route = (-1, -1)
 
         self.game_state.territory_owners = [1] * len(self.game_state.territory_owners)
         self.game_state.territory_troops = [1] * len(self.game_state.territory_troops)
@@ -86,19 +85,19 @@ class TestSafeBattleStrategy(TestAttackStrategy):
     def test_walkthrough(self):
         self.game_state.territory_troops[25] = 100
         selected_action = self.attack_strategy.select_action(self.action_list, self.game_state, self.classic_map)
-        self.assertEqual(selected_action, (BattleFromAction(25)))
+        self.assertEqual(selected_action, BattleFromAction(25))
         self.environment.step(selected_action)
         self.game_state = self.environment.current_state
         self.action_list = self.environment.get_action_list()
 
         selected_action = self.attack_strategy.select_action(self.action_list, self.game_state, self.classic_map)
-        self.assertEqual(selected_action, (BattleToAction(21)))
+        self.assertEqual(selected_action, BattleToAction(21))
         self.environment.step(selected_action)
         self.game_state = self.environment.current_state
         self.action_list = self.environment.get_action_list()
 
         selected_action = self.attack_strategy.select_action(self.action_list, self.game_state, self.classic_map)
-        self.assertIn(selected_action, [TransferAction(50), TransferAction(49)])
+        self.assertEqual(selected_action, TransferAction(TransferMethod.SPLIT))
         self.environment.step(selected_action)
 
 class TestTransferMethod(TestAttackStrategy):
@@ -112,31 +111,27 @@ class TestTransferMethod(TestAttackStrategy):
 
     def test_select_non_battle_action_random(self):
         self.attack_strategy.transfer_method = TransferMethod.RANDOM
-
-        expected_actions = {TransferAction(1).__repr__(), TransferAction(2).__repr__(), TransferAction(3).__repr__()}
-        selected_actions = set()
-        for _ in range(50):
-            selected_actions.add(self.attack_strategy.select_action(self.action_list, self.game_state, self.classic_map).__repr__())
-
-        self.assertEqual(expected_actions, selected_actions)
+        selected_action = self.attack_strategy.select_action(self.action_list, self.game_state, self.classic_map)
+        
+        self.assertEqual(selected_action, TransferAction(TransferMethod.RANDOM))
 
     def test_select_non_battle_action_one(self):
         self.attack_strategy.transfer_method = TransferMethod.ONE
-
         selected_action = self.attack_strategy.select_action(self.action_list, self.game_state, self.classic_map)
-        self.assertEqual(selected_action, TransferAction(1))
+
+        self.assertEqual(selected_action, TransferAction(TransferMethod.ONE))
+    
+    def test_select_non_battle_action_split(self):
+        self.attack_strategy.transfer_method = TransferMethod.SPLIT
+        selected_action = self.attack_strategy.select_action(self.action_list, self.game_state, self.classic_map)
+
+        self.assertEqual(selected_action, TransferAction(TransferMethod.SPLIT))
 
     def test_select_non_battle_action_all(self):
         self.attack_strategy.transfer_method = TransferMethod.ALL
         selected_action = self.attack_strategy.select_action(self.action_list, self.game_state, self.classic_map)
 
-        self.assertEqual(selected_action, TransferAction(3))
-
-    def test_select_non_battle_action_split(self):
-        self.attack_strategy.transfer_method = TransferMethod.SPLIT
-        selected_action = self.attack_strategy.select_action(self.action_list, self.game_state, self.classic_map)
-
-        self.assertEqual(selected_action, TransferAction(2))
+        self.assertEqual(selected_action, TransferAction(TransferMethod.ALL))
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,7 +2,7 @@ import unittest
 
 from src.agents.fortify_strategy import RandomFortifyStrategy, MinimumFortifyStrategy, MaximumFortifyStrategy
 
-from src.environment.actions import FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction, MAX_TROOP_TRANSFER
+from src.environment.actions import TransferMethod, FortifyFromAction, FortifyToAction, FortifyAmountAction
 
 from src.environment.environment import RiskEnvironment
 from src.environment.game_state import GamePhase
@@ -37,12 +37,12 @@ class TestRandomFortifyStrategy(TestFortifyStrategy):
 
     def test_select_action_returns_any_valid_fortify_route_action(self):
         expected_fortify_actions = {
-            (FortifyFromAction(20), FortifyToAction(21), FortifyAmountAction(1)).__repr__(),
-            (FortifyFromAction(20), FortifyToAction(25), FortifyAmountAction(1)).__repr__(),
-            (FortifyFromAction(21), FortifyToAction(20), FortifyAmountAction(1)).__repr__(),
-            (FortifyFromAction(21), FortifyToAction(25), FortifyAmountAction(1)).__repr__(),
-            (FortifyFromAction(25), FortifyToAction(20), FortifyAmountAction(1)).__repr__(),
-            (FortifyFromAction(25), FortifyToAction(21), FortifyAmountAction(1)).__repr__()
+            (FortifyFromAction(20), FortifyToAction(21), FortifyAmountAction(TransferMethod.RANDOM)).__repr__(),
+            (FortifyFromAction(20), FortifyToAction(25), FortifyAmountAction(TransferMethod.RANDOM)).__repr__(),
+            (FortifyFromAction(21), FortifyToAction(20), FortifyAmountAction(TransferMethod.RANDOM)).__repr__(),
+            (FortifyFromAction(21), FortifyToAction(25), FortifyAmountAction(TransferMethod.RANDOM)).__repr__(),
+            (FortifyFromAction(25), FortifyToAction(20), FortifyAmountAction(TransferMethod.RANDOM)).__repr__(),
+            (FortifyFromAction(25), FortifyToAction(21), FortifyAmountAction(TransferMethod.RANDOM)).__repr__()
         }
         selected_actions = set()
         for _ in range(50):
@@ -56,7 +56,7 @@ class TestMinimumFortifyStrategy(TestFortifyStrategy):
         self.fortify_strategy = MinimumFortifyStrategy()
 
     def test_strategy_splits_half_troops_between_most_and_least_populous_territories(self):
-        expected_fortify_action = (FortifyFromAction(25), FortifyToAction(20), FortifyAmountAction(4))
+        expected_fortify_action = (FortifyFromAction(25), FortifyToAction(20), FortifyAmountAction(TransferMethod.SPLIT))
 
         self.assertEqual(self.fortify_strategy.compute_best_fortify(self.action_list, self.game_state, self.classic_map).__repr__(), expected_fortify_action.__repr__())
     
@@ -67,8 +67,8 @@ class TestMaximumFortifyStrategy(TestFortifyStrategy):
 
     def test_strategy_moves_all_troops_from_capital_to_non_capital(self):
         expected_fortify_actions = {
-            (FortifyFromAction(25), FortifyToAction(20), FortifyAmountAction(MAX_TROOP_TRANSFER)).__repr__(),
-            (FortifyFromAction(25), FortifyToAction(21), FortifyAmountAction(MAX_TROOP_TRANSFER)).__repr__(),
+            (FortifyFromAction(25), FortifyToAction(20), FortifyAmountAction(TransferMethod.ALL)).__repr__(),
+            (FortifyFromAction(25), FortifyToAction(21), FortifyAmountAction(TransferMethod.ALL)).__repr__(),
         }
 
         selected_actions = set()

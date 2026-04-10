@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 from src.agents.strategy import Strategy
 
-from src.environment.actions import Action, ActionList, FortifyFromAction, FortifyToAction, FortifyAmountAction, MAX_TROOP_TRANSFER
+from src.environment.actions import TransferMethod, Action, ActionList, FortifyFromAction, FortifyToAction, FortifyAmountAction
 from src.environment.game_state import GameState
 from src.environment.map import RiskMap
 
@@ -40,10 +40,8 @@ class RandomFortifyStrategy(FortifyStrategy):
         selected_fortify_from_action = random.choice(valid_actions.fortify_from_actions)
         forwarded_game_state = selected_fortify_from_action.apply(game_state, risk_map)
         selected_fortify_to_action = random.choice(FortifyToAction.get_action_list(forwarded_game_state, risk_map))
-        forwarded_game_state = selected_fortify_to_action.apply(forwarded_game_state, risk_map)
-        selected_fortify_amount_action = random.choice(FortifyAmountAction.get_action_list(forwarded_game_state, risk_map))
 
-        return (selected_fortify_from_action, selected_fortify_to_action, selected_fortify_amount_action)
+        return (selected_fortify_from_action, selected_fortify_to_action, FortifyAmountAction(TransferMethod.RANDOM))
 
 class MinimumFortifyStrategy(FortifyStrategy):
     def compute_best_fortify(self, valid_actions: ActionList, game_state: GameState, risk_map: RiskMap) -> tuple[FortifyFromAction, FortifyToAction, FortifyAmountAction]:
@@ -55,10 +53,8 @@ class MinimumFortifyStrategy(FortifyStrategy):
             least_fortified_territory = min(FortifyToAction.get_action_list(forwarded_game_state, risk_map), key=lambda to_action: game_state.territory_troops[to_action.to_territory_id])
             if not best_fortify_route or game_state.territory_troops[fortify_from_action.from_territory_id] - game_state.territory_troops[least_fortified_territory.to_territory_id] > game_state.territory_troops[best_fortify_route[0].from_territory_id] - game_state.territory_troops[best_fortify_route[1].to_territory_id]:
                 best_fortify_route = (fortify_from_action, least_fortified_territory)
-        
-        troop_count = max((game_state.territory_troops[best_fortify_route[0].from_territory_id] - game_state.territory_troops[best_fortify_route[1].to_territory_id]) // 2, 1)
 
-        return (best_fortify_route[0], best_fortify_route[1], FortifyAmountAction(troop_count))
+        return (best_fortify_route[0], best_fortify_route[1], FortifyAmountAction(TransferMethod.SPLIT))
 
 class MaximumFortifyStrategy(FortifyStrategy):
     """Select the fortify action that moves all troops from a capital territory to any random non-capital territory."""
@@ -79,7 +75,7 @@ class MaximumFortifyStrategy(FortifyStrategy):
         if possible_fortify_routes:
             best_fortify_route = random.choice(possible_fortify_routes)
 
-            return (best_fortify_route[0], best_fortify_route[1], FortifyAmountAction(MAX_TROOP_TRANSFER))
+            return (best_fortify_route[0], best_fortify_route[1], FortifyAmountAction(TransferMethod.ALL))
         else:
             return None
     

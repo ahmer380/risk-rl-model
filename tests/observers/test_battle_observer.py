@@ -1,6 +1,6 @@
 import unittest
 
-from src.environment.actions import BattleFromAction, BattleToAction, TransferAction
+from src.environment.actions import TransferMethod, BattleFromAction, BattleToAction, TransferAction
 from src.environment.game_state import GameState, GamePhase
 from src.environment.map import RiskMap
 
@@ -43,7 +43,7 @@ class TestBattleObserver(unittest.TestCase):
 
         if self.game_state.current_battle == (attacker_territory_id, defender_territory_id):
             previous_state = self.game_state
-            transfer_action = TransferAction(self.game_state.territory_troops[attacker_territory_id] - 1)
+            transfer_action = TransferAction(TransferMethod.ALL)
             self.game_state = transfer_action.apply(self.game_state, self.classic_map)
             self.battle_observer.on_action_taken(transfer_action, previous_state, self.game_state, None)
     
