@@ -2,7 +2,7 @@ from typing import Self
 
 from tabulate import tabulate
 
-from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction
+from src.environment.actions import Action, ActionList, DeployAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction
 from src.environment.game_state import GameState, GamePhase
 
 from src.observers.observer import Observer, CoreObserver
@@ -14,7 +14,6 @@ class ActionCountObserver(Observer):
         
         self.action_counts_this_turn = {
             DeployAction.get_name(): [0, 0],
-            TradeAction.get_name(): [0, 0],
             BattleFromAction.get_name(): [0, 0],
             BattleToAction.get_name(): [0, 0],
             TransferAction.get_name(): [0, 0],
@@ -55,8 +54,6 @@ class ActionCountObserver(Observer):
             "Average\nactions",
             "Total\ndeploy\nactions",
             "Average\ndeploy\nactions",
-            "Total\ntrade\nactions",
-            "Average\ntrade\nactions",
             "Total\nbattle\nfrom\nactions",
             "Average\nbattle\nfrom\nactions",
             "Total\nbattle\nto\nactions",

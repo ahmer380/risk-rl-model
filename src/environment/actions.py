@@ -3,12 +3,13 @@ import random
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Self
-from itertools import combinations
 
 from src.environment.map import RiskMap
-from src.environment.game_state import GamePhase, GameState, CombatArm, TerritoryCard
+from src.environment.game_state import GamePhase, GameState
 
 from src.utils.blitz_battle_simulator import BlitzBattleSimulator
+
+TRADE_IN_VALUE = 10
 
 battle_simulator = BlitzBattleSimulator()
 
@@ -96,89 +97,6 @@ class DeployAction(Action):
     def __eq__(self, other):
         return isinstance(other, DeployAction) and self.territory_id == other.territory_id
 
-class TradeAction(Action):
-    def __init__(self, territory_card_indexes: list[int]):
-        self.territory_card_indexes = sorted(territory_card_indexes)
-    
-    def apply(self, game_state: GameState, _: RiskMap) -> GameState:
-        self.validate_action(game_state, _)
-        new_state = game_state.copy()
-
-        for territory_card_index in self.territory_card_indexes:
-            territory_card = new_state.player_territory_cards[new_state.current_player][territory_card_index]
-            if new_state.territory_owners[territory_card.territory_id] == new_state.current_player:
-                new_state.territory_troops[territory_card.territory_id] += 2 # Bonus troops for trading in a card of a territory you own
-        
-        new_state.player_territory_cards[new_state.current_player] = [card for i, card in enumerate(new_state.player_territory_cards[new_state.current_player]) if i not in self.territory_card_indexes] + [None] * 3 # Remove traded cards and add None placeholders to maintain list size
-        
-        bonuses = [4, 6, 8, 10, 12, 15]
-        new_state.deployment_troops += bonuses[new_state.trade_count] if new_state.trade_count < len(bonuses) else min(new_state.trade_count * 5 - 10, 30)
-        new_state.trade_count += 1
-
-        return new_state
-    
-    def validate_action(self, game_state: GameState, risk_map: RiskMap):
-        assert game_state.current_phase == GamePhase.DRAFT, "Can only apply TradeAction during draft phase"
-        assert len(self.territory_card_indexes) == 3, "Must trade exactly 3 cards"
-        assert self.is_valid_set(game_state, tuple(self.territory_card_indexes)), "Invalid set of cards to trade"
-        assert 0 <= self.encode_action(risk_map) < self.get_max_actions(risk_map), "Encoded action index out of bounds"
-
-    def encode_action(self, _: RiskMap) -> int:
-        i1, i2, i3 = self.territory_card_indexes
-
-        if i1 == 0 and i2 == 1 and i3 == 2: return 0
-        if i1 == 0 and i2 == 1 and i3 == 3: return 1
-        if i1 == 0 and i2 == 1 and i3 == 4: return 2
-        if i1 == 0 and i2 == 2 and i3 == 3: return 3
-        if i1 == 0 and i2 == 2 and i3 == 4: return 4
-        if i1 == 0 and i2 == 3 and i3 == 4: return 5
-        if i1 == 1 and i2 == 2 and i3 == 3: return 6
-        if i1 == 1 and i2 == 2 and i3 == 4: return 7
-        if i1 == 1 and i2 == 3 and i3 == 4: return 8
-        if i1 == 2 and i2 == 3 and i3 == 4: return 9
-
-    @classmethod
-    def decode_action(cls, action_index: int, _: RiskMap) -> Self:
-        if action_index == 0: return cls([0, 1, 2])
-        if action_index == 1: return cls([0, 1, 3])
-        if action_index == 2: return cls([0, 1, 4])
-        if action_index == 3: return cls([0, 2, 3])
-        if action_index == 4: return cls([0, 2, 4])
-        if action_index == 5: return cls([0, 3, 4])
-        if action_index == 6: return cls([1, 2, 3])
-        if action_index == 7: return cls([1, 2, 4])
-        if action_index == 8: return cls([1, 3, 4])
-        if action_index == 9: return cls([2, 3, 4])
-
-    @classmethod
-    def get_action_list(cls, game_state: GameState, _: RiskMap) -> list[Self]:
-        if game_state.current_phase != GamePhase.DRAFT: 
-            return []
-
-        return [cls(list(card_indexes)) for card_indexes in combinations(range(5), 3) if cls.is_valid_set(game_state, card_indexes)]
-    
-    @classmethod
-    def is_valid_set(cls, game_state: GameState, card_indexes: tuple[int, int, int]) -> bool:
-        if any(game_state.player_territory_cards[game_state.current_player][card_index] is None for card_index in card_indexes):
-            return False
-        
-        combat_arms = {game_state.player_territory_cards[game_state.current_player][card_index].combat_arm for card_index in card_indexes}
-        return CombatArm.WILD in combat_arms or len(combat_arms) == 1 or len(combat_arms) == 3
-    
-    @classmethod
-    def get_max_actions(cls, _: RiskMap) -> int:
-        return 10 # C(5, 3) = 10
-
-    @classmethod
-    def get_name(cls) -> str:
-        return "TradeAction"
-    
-    def __repr__(self):
-        return f"TradeAction(territory_cards={self.territory_card_indexes})"
-    
-    def __eq__(self, other):
-        return isinstance(other, TradeAction) and self.territory_card_indexes == other.territory_card_indexes
-    
 class BattleFromAction(Action):
     def __init__(self, attacker_territory_id: int):
         self.attacker_territory_id = attacker_territory_id
@@ -254,14 +172,8 @@ class BattleToAction(Action):
 
             if all(territory_owner != previous_territory_owner for territory_owner in new_state.territory_owners): # Defender is eliminated
                 new_state.active_players[previous_territory_owner] = False
-
-                territory_cards_to_transfer = [card for card in new_state.player_territory_cards[previous_territory_owner] if card is not None]
-                for territory_card in territory_cards_to_transfer:
-                    if None in new_state.player_territory_cards[new_state.current_player]:
-                        empty_card_index = new_state.player_territory_cards[new_state.current_player].index(None)
-                        new_state.player_territory_cards[new_state.current_player][empty_card_index] = territory_card
-
-                new_state.player_territory_cards[previous_territory_owner] = [None] * 5
+                new_state.territory_card_counts[new_state.current_player] += new_state.territory_card_counts[previous_territory_owner]
+                new_state.territory_card_counts[previous_territory_owner] = 0
         else: # Defender wins battle
             new_state.current_battle = (-1, -1)
 
@@ -541,11 +453,9 @@ class SkipAction(Action):
         elif new_state.current_phase == GamePhase.ATTACK:
             new_state.current_phase = GamePhase.FORTIFY
         elif new_state.current_phase == GamePhase.FORTIFY:
-            # Draw random territory card if player captured a territory this turn
+            # Gain a territory card if a player captured a territory this turn
             if new_state.territory_captured_this_turn:
-                if None in new_state.player_territory_cards[new_state.current_player]:
-                    empty_card_index = new_state.player_territory_cards[new_state.current_player].index(None)
-                    new_state.player_territory_cards[new_state.current_player][empty_card_index] = TerritoryCard.generate_random_card(len(new_state.territory_owners))
+                new_state.territory_card_counts[new_state.current_player] += 1
                 new_state.territory_captured_this_turn = False
             
             new_state.current_phase = GamePhase.DRAFT
@@ -555,6 +465,8 @@ class SkipAction(Action):
             
             # Calculate deployment troops for next player
             new_state.deployment_troops = max(3, len(new_state.get_player_owned_territory_ids()) // 3) + risk_map.get_player_continent_bonuses(new_state.current_player, new_state.territory_owners)
+            new_state.deployment_troops += (new_state.territory_card_counts[new_state.current_player] // 3) * TRADE_IN_VALUE
+            new_state.territory_card_counts[new_state.current_player] = new_state.territory_card_counts[new_state.current_player] % 3
 
         return new_state
     
@@ -600,7 +512,6 @@ class ActionList:
     def __init__(
         self, 
         deploy_actions: list[DeployAction],
-        trade_actions: list[TradeAction],
         battle_from_actions: list[BattleFromAction],
         battle_to_actions: list[BattleToAction],
         transfer_actions: list[TransferAction],
@@ -610,7 +521,6 @@ class ActionList:
         skip_actions: list[SkipAction]
     ):
         self.deploy_actions = deploy_actions
-        self.trade_actions = trade_actions
         self.battle_from_actions = battle_from_actions
         self.battle_to_actions = battle_to_actions
         self.transfer_actions = transfer_actions
@@ -623,7 +533,6 @@ class ActionList:
     def get_action_list(cls, game_state: GameState, risk_map: RiskMap) -> Self:
         return cls(
             deploy_actions=DeployAction.get_action_list(game_state, risk_map),
-            trade_actions=TradeAction.get_action_list(game_state, risk_map),
             battle_from_actions=BattleFromAction.get_action_list(game_state, risk_map),
             battle_to_actions=BattleToAction.get_action_list(game_state, risk_map),
             transfer_actions=TransferAction.get_action_list(game_state, risk_map),
@@ -639,7 +548,6 @@ class ActionList:
     def get_uniform_random_action(self) -> Action:
         action_types = [
             self.deploy_actions,
-            self.trade_actions,
             self.battle_from_actions,
             self.battle_to_actions,
             self.transfer_actions,
@@ -655,8 +563,6 @@ class ActionList:
     def get_action_type_list_by_name(self, action_name: str) -> list[Action]:
         if action_name == DeployAction.get_name():
             return self.deploy_actions
-        elif action_name == TradeAction.get_name():
-            return self.trade_actions
         elif action_name == BattleFromAction.get_name():
             return self.battle_from_actions
         elif action_name == BattleToAction.get_name():
@@ -675,7 +581,7 @@ class ActionList:
             raise ValueError(f"Invalid action name: {action_name}")
         
     def size(self) -> int:
-        return len(self.deploy_actions) + len(self.trade_actions) + len(self.battle_from_actions) + len(self.battle_to_actions) + len(self.transfer_actions) + len(self.fortify_from_actions) + len(self.fortify_to_actions) + len(self.fortify_amount_actions) + len(self.skip_actions)
+        return len(self.deploy_actions) + len(self.battle_from_actions) + len(self.battle_to_actions) + len(self.transfer_actions) + len(self.fortify_from_actions) + len(self.fortify_to_actions) + len(self.fortify_amount_actions) + len(self.skip_actions)
     
     def flatten(self) -> list[Action]:
-        return self.deploy_actions + self.trade_actions + self.battle_from_actions + self.battle_to_actions + self.transfer_actions + self.fortify_from_actions + self.fortify_to_actions + self.fortify_amount_actions + self.skip_actions
+        return self.deploy_actions + self.battle_from_actions + self.battle_to_actions + self.transfer_actions + self.fortify_from_actions + self.fortify_to_actions + self.fortify_amount_actions + self.skip_actions

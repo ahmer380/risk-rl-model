@@ -4,7 +4,7 @@ import gymnasium
 
 from src.agents.agent import Agent
 
-from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction
+from src.environment.actions import Action, ActionList, DeployAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction
 from src.environment.game_state import GameState, GamePhase
 from src.environment.map import RiskMap
 
@@ -97,22 +97,21 @@ class RiskGymEnvironment(gymnasium.Env):
         return observation_space
     
     def encode_observation(self) -> dict:
-        owned_territory_cards = sum(1 if card is not None else 0 for card in self.game_state.player_territory_cards[self.get_rl_agent_turn_number()])
         encoded_observation = {
             "current_phase": np.arange(3) == self.game_state.current_phase.value,
             "territories": np.array([
                 [int(territory_owner == self.get_rl_agent_turn_number()), min(troop_count / 100.0, 1.0)]
                 for territory_owner, troop_count in zip(self.game_state.territory_owners, self.game_state.territory_troops)
             ], dtype=np.float32),
-            "territory_card_count": np.array([owned_territory_cards / 5.0], dtype=np.float32),
+            "territory_card_count": np.array([self.game_state.territory_card_counts[self.get_rl_agent_turn_number()] / 5.0], dtype=np.float32),
             "deployment_troops": np.array([min(self.game_state.deployment_troops / 100.0, 1.0)], dtype=np.float32)
         }
 
         return encoded_observation
     
     def get_max_actions(self) -> int:
+        """size: 5T + 9, where T is the number of territories"""
         return DeployAction.get_max_actions(self.risk_map) + \
-               TradeAction.get_max_actions(self.risk_map) + \
                BattleFromAction.get_max_actions(self.risk_map) + \
                BattleToAction.get_max_actions(self.risk_map) + \
                TransferAction.get_max_actions(self.risk_map) + \
@@ -140,7 +139,7 @@ class RiskGymEnvironment(gymnasium.Env):
     
     def encode_action(self, action: Action) -> int:
         offset = 0
-        for action_class in [DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction]:
+        for action_class in [DeployAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction]:
             if isinstance(action, action_class):
                 return offset + action.encode_action(self.risk_map)
             
@@ -148,7 +147,7 @@ class RiskGymEnvironment(gymnasium.Env):
 
     def decode_action(self, action_index: int) -> Action:
         offset = 0
-        for action_class in [DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction]:
+        for action_class in [DeployAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction]:
             max_actions = action_class.get_max_actions(self.risk_map)
             if offset <= action_index < offset + max_actions:
                 return action_class.decode_action(int(action_index - offset), self.risk_map)

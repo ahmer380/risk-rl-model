@@ -12,7 +12,7 @@ class DraftStrategy(Strategy, ABC):
     pass
 
 class RandomDraftStrategy(DraftStrategy):
-    """Select a random deploy, trade, or skip action."""
+    """Select a random deploy or skip action."""
     def select_action(self, valid_actions: ActionList, _game_state: GameState, _risk_map: RiskMap) -> Action:
         return valid_actions.get_random_action()
     
@@ -22,7 +22,7 @@ class MinimumDeployStrategy(DraftStrategy):
         if valid_actions.deploy_actions:
             return min(valid_actions.deploy_actions, key=lambda action: game_state.territory_troops[action.territory_id])
         else:
-            return random.choice(valid_actions.trade_actions + valid_actions.skip_actions)
+            return valid_actions.skip_actions[0]
 
 class MaximumDeployStrategy(DraftStrategy):
     """Deploy to one of the top-capitals territories with the most troops."""
@@ -33,8 +33,8 @@ class MaximumDeployStrategy(DraftStrategy):
         if valid_actions.deploy_actions:
             return DeployAction(random.choice(self.get_capital_territory_ids(game_state)))
         else:
-            return random.choice(valid_actions.trade_actions + valid_actions.skip_actions)
-    
+            return valid_actions.skip_actions[0]
+
     def get_capital_territory_ids(self, game_state: GameState) -> list[int]:
         player_owned_territory_ids = game_state.get_player_owned_territory_ids()
 
@@ -54,8 +54,8 @@ class ContinentalDeployStrategy(DraftStrategy):
 
             return random.choice(territories_in_most_controlled_continent)
         else:
-            return random.choice(valid_actions.trade_actions + valid_actions.skip_actions)
-    
+            return valid_actions.skip_actions[0]
+
     def get_continent_c_scores(self, player_owned_territory_ids: list[int], risk_map: RiskMap) -> list[float]:
         """Return a list of c-scores for each continent indexed by continent_id"""
         c_scores = [0.0] * len(risk_map.continents)
