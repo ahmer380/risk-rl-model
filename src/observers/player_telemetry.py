@@ -1,4 +1,4 @@
-from src.environment.actions import DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
+from src.environment.actions import DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction
 
 class BattleLog:
     def __init__(
@@ -39,7 +39,8 @@ class PlayerTelemetry:
             BattleFromAction.get_name(): ([], []),
             BattleToAction.get_name(): ([], []),
             TransferAction.get_name(): ([], []),
-            FortifyRouteAction.get_name(): ([], []),
+            FortifyFromAction.get_name(): ([], []),
+            FortifyToAction.get_name(): ([], []),
             FortifyAmountAction.get_name(): ([], []),
             SkipAction.get_name(): ([], [])
         } #key=action_type, value=(list of (maximum) no.action_types generated, list of no.action_types executed), indexed per turn)

@@ -13,7 +13,7 @@ class TestGameState(unittest.TestCase):
 		self.assertEqual(state.player_territory_cards, [[None] * 5, [None] * 5, [None] * 5, [None] * 5])
 		self.assertEqual(state.trade_count, 0)
 		self.assertEqual(state.current_battle, (-1, -1))
-		self.assertEqual(state.current_fortify_route, (-1, -1))
+		self.assertEqual(state.current_fortify, (-1, -1))
 		self.assertEqual(state.territory_captured_this_turn, False)
 		self.assertEqual(state.deployment_troops, 3) # Territory partition is [11, 11, 10, 10], so each player gets 3 troops for deployment
 		

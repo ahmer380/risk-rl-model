@@ -2,9 +2,9 @@ import unittest
 
 import numpy as np
 
-from src.agents.agent import RandomAgent, CommunistAgent
+from src.agents.agent import RandomAgent, CommunistAgent, CapitalistAgent
 
-from src.environment.actions import DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
+from src.environment.actions import DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction
 from src.environment.map import RiskMap
 
 from src.train.rl_agent import RLAgent
@@ -13,7 +13,7 @@ from src.train.gym_environment import RiskGymEnvironment
 class TestClassicGymEnv(unittest.TestCase):
     def setUp(self):
         self.num_players = 6
-        agent_composition = [RLAgent(None), CommunistAgent(), RandomAgent(), RandomAgent(), RandomAgent(), CommunistAgent()]
+        agent_composition = [RLAgent(None), CommunistAgent(), RandomAgent(), RandomAgent(), RandomAgent(), CapitalistAgent()]
         self.classic_map = RiskMap.from_json("maps/classic.json")
         self.runner = RiskGymEnvironment(self.classic_map, agent_composition)
 
@@ -53,11 +53,12 @@ class TestGymEnvInitialisation(TestClassicGymEnv):
         self.assertEqual(BattleFromAction.get_max_actions(self.classic_map), 42)
         self.assertEqual(BattleToAction.get_max_actions(self.classic_map), 42)
         self.assertEqual(TransferAction.get_max_actions(self.classic_map), 101)
-        self.assertEqual(FortifyRouteAction.get_max_actions(self.classic_map), 1764)
+        self.assertEqual(FortifyFromAction.get_max_actions(self.classic_map), 42)
+        self.assertEqual(FortifyToAction.get_max_actions(self.classic_map), 42)
         self.assertEqual(FortifyAmountAction.get_max_actions(self.classic_map), 101)
         self.assertEqual(SkipAction.get_max_actions(self.classic_map), 1)
-        self.assertEqual(self.runner.get_max_actions(), 2103)
-        self.assertEqual(self.runner.action_space.n, 2103)
+        self.assertEqual(self.runner.get_max_actions(), 423)
+        self.assertEqual(self.runner.action_space.n, 423)
 
 class TestEncodeAndDecodeActions(TestClassicGymEnv):
     def test_encode_and_decode_deploy_action(self):
@@ -95,17 +96,24 @@ class TestEncodeAndDecodeActions(TestClassicGymEnv):
         decoded = self.runner.decode_action(encoded)
         self.assertEqual(decoded, transfer_action)
     
-    def test_encode_and_decode_fortify_route_action(self):
-        fortify_route_action = FortifyRouteAction(3, 31)
-        encoded = self.runner.encode_action(fortify_route_action)
-        self.assertEqual(encoded, 42 + 10 + 42 + 42 + 101 + 157)
+    def test_encode_and_decode_fortify_from_action(self):
+        fortify_from_action = FortifyFromAction(3)
+        encoded = self.runner.encode_action(fortify_from_action)
+        self.assertEqual(encoded, 42 + 10 + 42 + 42 + 101 + 3)
         decoded = self.runner.decode_action(encoded)
-        self.assertEqual(decoded, fortify_route_action)
+        self.assertEqual(decoded, fortify_from_action)
+    
+    def test_encode_and_decode_fortify_to_action(self):
+        fortify_to_action = FortifyToAction(31)
+        encoded = self.runner.encode_action(fortify_to_action)
+        self.assertEqual(encoded, 42 + 10 + 42 + 42 + 101 + 42 + 31)
+        decoded = self.runner.decode_action(encoded)
+        self.assertEqual(decoded, fortify_to_action)
     
     def test_encode_and_decode_fortify_amount_action(self):
         fortify_amount_action = FortifyAmountAction(1)
         encoded = self.runner.encode_action(fortify_amount_action)
-        self.assertEqual(encoded, 42 + 10 + 42 + 42 + 101 + 1764 + 1)
+        self.assertEqual(encoded, 42 + 10 + 42 + 42 + 101 + 42 + 42 + 1)
         decoded = self.runner.decode_action(encoded)
         self.assertEqual(decoded, fortify_amount_action)
     

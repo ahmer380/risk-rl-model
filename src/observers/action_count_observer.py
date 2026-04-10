@@ -2,7 +2,7 @@ from typing import Self
 
 from tabulate import tabulate
 
-from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyRouteAction, FortifyAmountAction, SkipAction
+from src.environment.actions import Action, ActionList, DeployAction, TradeAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction
 from src.environment.game_state import GameState, GamePhase
 
 from src.observers.observer import Observer, CoreObserver
@@ -18,7 +18,8 @@ class ActionCountObserver(Observer):
             BattleFromAction.get_name(): [0, 0],
             BattleToAction.get_name(): [0, 0],
             TransferAction.get_name(): [0, 0],
-            FortifyRouteAction.get_name(): [0, 0],
+            FortifyFromAction.get_name(): [0, 0],
+            FortifyToAction.get_name(): [0, 0],
             FortifyAmountAction.get_name(): [0, 0],
             SkipAction.get_name(): [0, 0]
         } # key=action_type, value=((maximum) no.action_types generated, no.action_types executed) for the current turn
@@ -62,8 +63,10 @@ class ActionCountObserver(Observer):
             "Average\nbattle\nto\nactions",
             "Total\ntransfer\nactions",
             "Average\ntransfer\nactions",
-            "Total\nfortify\nroute\nactions",
-            "Average\nfortify\nroute\nactions",
+            "Total\nfortify\nfrom\nactions",
+            "Average\nfortify\nfrom\nactions",
+            "Total\nfortify\nto\nactions",
+            "Average\nfortify\nto\nactions",
             "Total\nfortify\namount\nactions",
             "Average\nfortify\namount\nactions",
             "Total\nskip\nactions",
