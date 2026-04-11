@@ -94,17 +94,17 @@ class TestGymEnvInitialisation(TestMiniGymEnv):
     def test_initial_state_observation(self):
         self.runner.agents = [self.runner.rl_agent, CommunistAgent(disparity=0)] # rl agent is player 0
         self.runner.game_state.territory_owners = [0, 0, 0, 0, 1, 1, 1, 1]
-        self.runner.game_state.territory_troops = [1, 2, 3, 4, 5, 6, 7, 8]
+        self.runner.game_state.territory_troops = [11, 2, 3, 8, 5, 6, 7, 8]
 
         observation = self.runner.encode_observation()
 
         np.testing.assert_array_equal(observation["current_phase"], np.array([1, 0, 0], dtype=np.int8))
         np.testing.assert_array_equal(observation["territories"], np.array(
-            [[1, 0.01], [1, 0.02], [1, 0.03], [1, 0.04], [0, 0.05], [0, 0.06], [0, 0.07], [0, 0.08]],
+            [[1, 0.22], [1, 0.04], [1, 0.06], [1, 0.16], [0, 0.10], [0, 0.12], [0, 0.14], [0, 0.16]],
             dtype=np.float32
         ))
         np.testing.assert_array_equal(observation["territory_card_count"], np.array([0.0], dtype=np.float32))
-        np.testing.assert_array_equal(observation["deployment_troops"], np.array([0.03], dtype=np.float32))
+        np.testing.assert_array_equal(observation["deployment_troops"], np.array([3/53], dtype=np.float32))
 
         self.assertTrue(self.runner.observation_space.contains(observation))
 

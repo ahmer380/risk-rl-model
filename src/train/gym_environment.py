@@ -97,14 +97,16 @@ class RiskGymEnvironment(gymnasium.Env):
         return observation_space
     
     def encode_observation(self) -> dict:
+        total_troops = sum(self.game_state.territory_troops)
+
         encoded_observation = {
             "current_phase": np.arange(3) == self.game_state.current_phase.value,
             "territories": np.array([
-                [int(territory_owner == self.get_rl_agent_turn_number()), min(troop_count / 100.0, 1.0)]
+                [int(territory_owner == self.get_rl_agent_turn_number()), troop_count / total_troops]
                 for territory_owner, troop_count in zip(self.game_state.territory_owners, self.game_state.territory_troops)
             ], dtype=np.float32),
-            "territory_card_count": np.array([self.game_state.territory_card_counts[self.get_rl_agent_turn_number()] / 5.0], dtype=np.float32),
-            "deployment_troops": np.array([min(self.game_state.deployment_troops / 100.0, 1.0)], dtype=np.float32)
+            "territory_card_count": np.array([min(self.game_state.territory_card_counts[self.get_rl_agent_turn_number()] / 3.0, 1.0)], dtype=np.float32),
+            "deployment_troops": np.array([self.game_state.deployment_troops / (self.game_state.deployment_troops + total_troops)], dtype=np.float32)
         }
 
         return encoded_observation
