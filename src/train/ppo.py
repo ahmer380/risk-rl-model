@@ -57,7 +57,8 @@ class RiskPPO:
         self.model.save(f"models/{self.map_name}_map_{self.num_players}_player/{suffix}")
     
     def load(self, suffix: str):
-        self.model.load(f"models/{self.map_name}_map_{self.num_players}_player/{suffix}", env=self.env)
+        path = f"models/{self.map_name}_map_{self.num_players}_player/{suffix}"
+        self.model = MaskablePPO.load(path, env=self.env)
 
 class RiskMetricsCallback(BaseCallback):
     def _on_step(self):
