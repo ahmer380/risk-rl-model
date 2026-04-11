@@ -1,18 +1,11 @@
 import argparse
 
 from src.train.ppo import RiskPPO
-from src.train.rl_agent import RLAgent
 
 def train(map_name: str, num_players: int):
     ppo_trainer = RiskPPO(map_name, num_players)
     ppo_trainer.train()
     ppo_trainer.save("v1")
-
-def load_rl_agent(map_name: str, num_players: int) -> RLAgent:
-    ppo_trainer = RiskPPO(map_name, num_players)
-    ppo_trainer.load("v1")
-
-    return RLAgent(ppo_trainer)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a PPO agent for the Risk environment.")

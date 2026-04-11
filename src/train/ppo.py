@@ -1,27 +1,23 @@
-import torch.nn as nn
+from typing import Self
 
 from sb3_contrib import MaskablePPO
 from stable_baselines3.common.callbacks import BaseCallback
-
-from src.agents.agent import CommunistAgent
 
 from src.environment.actions import Action, ActionList
 from src.environment.map import RiskMap
 from src.environment.game_state import GameState
 
 from src.train.gym_environment import RiskGymEnvironment
-from src.train.rl_agent import RLAgent
 
 class RiskPPO:
     """Trains a PPO agent to play Risk on a given map and number of players."""
-    def __init__(self, map_name: str, num_players: int):
-        self.map_name = map_name
+    def __init__(self, risk_map: RiskMap, num_players: int):
+        self.risk_map = risk_map
         self.num_players = num_players
 
-        agent_composition = [RLAgent(None)] + [CommunistAgent(disparity=0) for _ in range(num_players - 1)]
         self.env = RiskGymEnvironment(
-            risk_map=RiskMap.from_json(f"maps/{map_name}.json"),
-            agent_composition=agent_composition, 
+            risk_map=self.risk_map,
+            num_players=self.num_players,
             max_episode_length=500
         )
 
@@ -38,7 +34,7 @@ class RiskPPO:
 
         self.model = MaskablePPO(
             env=self.env,
-            tensorboard_log=f"models/{self.map_name}_map_{self.num_players}_player/logs",
+            tensorboard_log=f"models/{self.risk_map.name}_map_{self.num_players}_player/logs",
             **self.hyperparameters,
         )
     
@@ -53,12 +49,16 @@ class RiskPPO:
 
         return decoded_action
 
-    def save(self, suffix: str):
-        self.model.save(f"models/{self.map_name}_map_{self.num_players}_player/{suffix}")
+    def save(self, version: int):
+        self.model.save(f"models/{self.risk_map.name}_map_{self.num_players}_player/v{version}".lower())
     
-    def load(self, suffix: str):
-        path = f"models/{self.map_name}_map_{self.num_players}_player/{suffix}"
-        self.model = MaskablePPO.load(path, env=self.env)
+    @classmethod
+    def load(cls, risk_map: RiskMap, num_players: int, version: int) -> Self:
+        risk_ppo = cls(risk_map, num_players)
+        path = f"models/{risk_map.name}_map_{num_players}_player/v{version}".lower()
+        risk_ppo.model = MaskablePPO.load(path, env=risk_ppo.env)
+
+        return risk_ppo
 
 class RiskMetricsCallback(BaseCallback):
     def _on_step(self):

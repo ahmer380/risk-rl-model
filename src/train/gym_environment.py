@@ -3,28 +3,33 @@ import numpy as np
 import gymnasium
 
 from src.agents.agent import Agent
+from src.agents.agent_sampler import AgentSampler
 
 from src.environment.actions import Action, ActionList, DeployAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction
 from src.environment.game_state import GameState, GamePhase
 from src.environment.map import RiskMap
 
-from src.train.rl_agent import RLAgent
-
-# TODO: Implement dynamic agent composition within episodes rather than a fixed composition for all episodes
+class DummyRLAgent(Agent):
+    """Placeholder agent used only to mark the RL-controlled slot within the environment"""
+    def __init__(self):
+        super().__init__(None, None, None)
+    
+    @classmethod
+    def get_colour(cls):
+        return "black"
 
 class RiskGymEnvironment(gymnasium.Env):
     """The Gym environment for training a single RL agent to play Risk. This is NOT a general-purpose Risk environment and should never be used for experimentation outside of training the RL agent."""
-    def __init__(self, risk_map: RiskMap, agent_composition: list[Agent], max_episode_length: int = 1000):
-        assert 2 <= len(agent_composition) <= 6, "At least 2 and at most 6 agents are required to play Risk"
-        assert sum(isinstance(agent, RLAgent) for agent in agent_composition) == 1, "Exactly one agent in the composition must be an RLAgent"
+    def __init__(self, risk_map: RiskMap, num_players: int, max_episode_length: int = 1000):
+        assert 2 <= num_players <= 6, "At least 2 and at most 6 agents are required to play Risk"
 
         self.risk_map = risk_map
-        self.rl_agent = next(agent for agent in agent_composition if isinstance(agent, RLAgent))
-        self.agents = agent_composition
+        self.rl_agent = DummyRLAgent()
+        self.agents = AgentSampler.sample_agent_composition(num_players=num_players, min_agents=[self.rl_agent])
         self.max_episode_length = max_episode_length # NOT the same as max game length, but how many steps the RL agent specifically will take
         
         self.episode_length = 0
-        self.game_state = GameState(len(agent_composition), len(risk_map.territories), reset_to_initial_state=True)
+        self.game_state = GameState(len(self.agents), len(risk_map.territories), reset_to_initial_state=True)
         self.game_state_at_start_of_rl_turn = None
         self.observation_space = self.get_observation_space()
         self.action_space = gymnasium.spaces.Discrete(self.get_max_actions(), dtype=np.uint16)
@@ -32,10 +37,7 @@ class RiskGymEnvironment(gymnasium.Env):
     def reset(self, seed: int=None):
         super().reset(seed=seed)
 
-        # random.shuffle(self.agents)
-        for agent in self.agents:
-            agent.reset()
-
+        self.agents = AgentSampler.sample_agent_composition(num_players=len(self.agents), min_agents=[self.rl_agent])
         self.episode_length = 0
         self.game_state.reset_to_initial_state()
         self.advance_to_rl_turn()
@@ -123,7 +125,7 @@ class RiskGymEnvironment(gymnasium.Env):
                SkipAction.get_max_actions(self.risk_map)
     
     def advance_to_rl_turn(self):
-        while self.game_state.current_player != self.get_rl_agent_turn_number() and not self.game_state.is_terminal_state():
+        while self.game_state.current_player != self.get_rl_agent_turn_number() and not self.game_state.is_terminal_state() and self.game_state.active_players[self.get_rl_agent_turn_number()]:
             action_list = ActionList.get_action_list(self.game_state, self.risk_map)
             selected_action = self.agents[self.game_state.current_player].select_action(action_list, self.game_state, self.risk_map)
             self.game_state = selected_action.apply(self.game_state, self.risk_map)

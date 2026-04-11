@@ -2,20 +2,16 @@ import unittest
 
 import numpy as np
 
-from src.agents.agent import RandomAgent, CommunistAgent, CapitalistAgent
-
 from src.environment.actions import TransferMethod, DeployAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction
 from src.environment.map import RiskMap
 
-from src.train.rl_agent import RLAgent
 from src.train.gym_environment import RiskGymEnvironment
 
 class TestClassicGymEnv(unittest.TestCase):
     def setUp(self):
         self.num_players = 6
-        agent_composition = [RLAgent(None), CommunistAgent(), RandomAgent(), RandomAgent(), RandomAgent(), CapitalistAgent()]
         self.classic_map = RiskMap.from_json("maps/classic.json")
-        self.runner = RiskGymEnvironment(self.classic_map, agent_composition)
+        self.runner = RiskGymEnvironment(self.classic_map, self.num_players)
 
 class TestGymEnvSimulation(TestClassicGymEnv):
     def test_full_episode_run(self):

@@ -33,9 +33,6 @@ class Agent(ABC):
         elif game_state.current_phase == GamePhase.FORTIFY:
             return self.fortify_strategy.select_action(valid_actions, game_state, risk_map)
     
-    def reset(self):
-        """Reset any internal state of the agent if necessary for the start of a new episode."""
-    
     def get_name(self) -> str:
         """Return the name of the agent for logging and visualisation purposes."""
         if type(self).player_id == 1:
