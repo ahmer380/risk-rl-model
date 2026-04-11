@@ -27,7 +27,7 @@ class RiskPPO:
             n_steps=2048,
             batch_size=512,
             n_epochs=10,
-            gamma=0.99,
+            gamma=0.995,
             gae_lambda=0.95,
             clip_range=0.2,
         )
@@ -49,22 +49,29 @@ class RiskPPO:
 
         return decoded_action
 
-    def save(self, version: int):
-        self.model.save(f"models/{self.risk_map.name}_map_{self.num_players}_player/v{version}".lower())
+    def save(self, suffix: str):
+        self.model.save(f"models/{self.risk_map.name}_map_{self.num_players}_player/{suffix}".lower())
     
     @classmethod
-    def load(cls, risk_map: RiskMap, num_players: int, version: int) -> Self:
+    def load(cls, risk_map: RiskMap, num_players: int, suffix: str) -> Self:
         risk_ppo = cls(risk_map, num_players)
-        path = f"models/{risk_map.name}_map_{num_players}_player/v{version}".lower()
+        path = f"models/{risk_map.name}_map_{num_players}_player/{suffix}".lower()
         risk_ppo.model = MaskablePPO.load(path, env=risk_ppo.env)
 
         return risk_ppo
 
 class RiskMetricsCallback(BaseCallback):
+    def __init__(self):
+        super().__init__()
+        self.total_episodes = 0
+        self.total_wins = 0
+
     def _on_step(self):
         infos = self.locals["infos"]
         for info in infos:
             if "win" in info:
-                self.logger.record("game/win_rate", info["win"])
-                self.logger.record("game/episode_length", info["episode_length"])
+                self.total_episodes += 1
+                self.total_wins += 1 if info["win"] else 0
+                self.logger.record("win_rate", self.total_wins / self.total_episodes)
+                self.logger.record("average_episode_length", self.num_timesteps / self.total_episodes)
         return True
