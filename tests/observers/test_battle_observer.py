@@ -1,6 +1,6 @@
 import unittest
 
-from src.environment.actions import BattleAction, TransferAction
+from src.environment.actions import TransferMethod, BattleFromAction, BattleToAction, TransferAction
 from src.environment.game_state import GameState, GamePhase
 from src.environment.map import RiskMap
 
@@ -34,13 +34,16 @@ class TestBattleObserver(unittest.TestCase):
 
     def run_battle_helper(self, attacker_territory_id: int, defender_territory_id: int):
         previous_state = self.game_state
-        battle_action = BattleAction(attacker_territory_id, defender_territory_id)
-        self.game_state = battle_action.apply(self.game_state, self.classic_map)
-        self.battle_observer.on_action_taken(battle_action, previous_state, self.game_state, None)
+        battle_from_action = BattleFromAction(attacker_territory_id)
+        self.game_state = battle_from_action.apply(self.game_state, self.classic_map)
+        self.battle_observer.on_action_taken(battle_from_action, previous_state, self.game_state, None)
+        battle_to_action = BattleToAction(defender_territory_id)
+        self.game_state = battle_to_action.apply(self.game_state, self.classic_map)
+        self.battle_observer.on_action_taken(battle_to_action, previous_state, self.game_state, None)
 
-        if self.game_state.current_territory_transfer == (attacker_territory_id, defender_territory_id):
+        if self.game_state.current_battle == (attacker_territory_id, defender_territory_id):
             previous_state = self.game_state
-            transfer_action = TransferAction(self.game_state.territory_troops[attacker_territory_id] - 1)
+            transfer_action = TransferAction(TransferMethod.ALL)
             self.game_state = transfer_action.apply(self.game_state, self.classic_map)
             self.battle_observer.on_action_taken(transfer_action, previous_state, self.game_state, None)
     

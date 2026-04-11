@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 
 from src.agents.draft_strategy import DraftStrategy, RandomDraftStrategy, MinimumDeployStrategy, MaximumDeployStrategy
-from src.agents.attack_strategy import AttackStrategy, WeightedRandomAttackStrategy, SafeBattleStrategy, TransferMethod
+from src.agents.attack_strategy import AttackStrategy, WeightedRandomAttackStrategy, SafeBattleStrategy
 from src.agents.fortify_strategy import FortifyStrategy, RandomFortifyStrategy, MinimumFortifyStrategy, MaximumFortifyStrategy
 
-from src.environment.actions import Action, ActionList
+from src.environment.actions import TransferMethod, Action, ActionList
 from src.environment.game_state import GameState, GamePhase
 from src.environment.map import RiskMap
 

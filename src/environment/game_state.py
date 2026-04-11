@@ -8,26 +8,6 @@ class GamePhase(Enum):
     ATTACK = 1
     FORTIFY = 2
 
-class CombatArm(Enum):
-    INFANTRY = 0
-    CAVALRY = 1
-    ARTILLERY = 2
-    WILD = 3
-
-class TerritoryCard:
-    def __init__(self, combat_arm: CombatArm, territory_id: int):
-        self.combat_arm = combat_arm
-        self.territory_id = territory_id
-    
-    @classmethod
-    def generate_random_card(cls, num_territories: int) -> Self:
-        combat_arm = random.choice(list(CombatArm))
-        territory_id = random.randint(0, num_territories - 1)
-        return cls(combat_arm, territory_id)
-
-    def __repr__(self):
-        return f"TerritoryCard(combat_arm={self.combat_arm}, territory_id={self.territory_id})"
-
 class GameState:
     """Map Agnostic Game State Representation for Risk. This is the "environment" that the agent will interact with, and should be decoupled from any specific map representation."""
     active_players: list[bool]
@@ -35,11 +15,10 @@ class GameState:
     current_phase: GamePhase
     territory_owners: list[int] # Owner player index for each territory
     territory_troops: list[int] # Number of troops in each territory
-    player_territory_cards: list[list[TerritoryCard]] # List of territory cards (size = 5) owned by each player (by index)
-    trade_count: int # Number of trades that have been made so far (to determine trade-in values)
+    territory_card_counts: list[int] # Number of territory cards owned by each player (by index)
     deployment_troops: int # Number of troops available for deployment in the current draft phase
-    current_territory_transfer: tuple[int, int] # Most recent (attacker_territory_id, defender_territory_id) for TransferAction
-    current_fortify_route: tuple[int, int] # Most recent (from_territory_id, to_territory_id) for FortifyAmountAction, declared by FortifyRouteAction
+    current_battle: tuple[int, int] # Most recent (attacker_territory_id, defender_territory_id). Either (-1, -1), (attacker_territory_id, -1), or (attacker_territory_id, defender_territory_id), depending on the current step within the attack phase.
+    current_fortify: tuple[int, int] # Most recent (from_territory_id, to_territory_id). Either (-1, -1) or (from_territory_id, -1), or (from_territory_id, to_territory_id), depending on the current step within the fortify phase.
     territory_captured_this_turn: bool # Determines if current player receives a random territory card at the end of the turn
     
     def __init__(self, num_players: int, num_territories: int, reset_to_initial_state: bool = False):
@@ -55,11 +34,10 @@ class GameState:
         self.active_players = [True] * num_players
         self.current_player = 0
         self.current_phase = GamePhase.DRAFT
-        self.player_territory_cards = [[None] * 5 for _ in range(num_players)]
-        self.trade_count = 0
+        self.territory_card_counts = [0] * num_players
         self.deployment_troops = max(3, math.ceil(num_territories / num_players) // 3) # Continent bonuses should NOT materialise in initial state
-        self.current_territory_transfer = (-1, -1)
-        self.current_fortify_route = (-1, -1)
+        self.current_battle = (-1, -1)
+        self.current_fortify = (-1, -1)
         self.territory_captured_this_turn = False
 
         '''
@@ -114,11 +92,10 @@ class GameState:
         new_state.current_phase = self.current_phase
         new_state.territory_owners = self.territory_owners.copy()
         new_state.territory_troops = self.territory_troops.copy()
-        new_state.player_territory_cards = [territory_cards.copy() for territory_cards in self.player_territory_cards]
-        new_state.trade_count = self.trade_count
+        new_state.territory_card_counts = self.territory_card_counts.copy()
         new_state.deployment_troops = self.deployment_troops
-        new_state.current_territory_transfer = self.current_territory_transfer
-        new_state.current_fortify_route = self.current_fortify_route
+        new_state.current_battle = self.current_battle
+        new_state.current_fortify = self.current_fortify
         new_state.territory_captured_this_turn = self.territory_captured_this_turn
 
         return new_state
@@ -129,15 +106,14 @@ class GameState:
         lines.append(f"Active players = {self.active_players}")
         lines.append(f"Current player = {self.current_player}")
         lines.append(f"Current phase = {self.current_phase}")
-        lines.append(f"Trade count = {self.trade_count}")
         lines.append(f"Deployment troops = {self.deployment_troops}")
         lines.append(f"Territory captured this turn = {'Yes' if self.territory_captured_this_turn else 'No'}")
-        lines.append(f"Current territory transfer = {self.current_territory_transfer}")
-        lines.append(f"Current fortify route = {self.current_fortify_route}")
+        lines.append(f"Current battle = {self.current_battle}")
+        lines.append(f"Current fortify = {self.current_fortify}")
         lines.append(f"Territory owners = {self.territory_owners}")
         lines.append(f"Territory troops = {self.territory_troops}")
 
         for player_i in range(len(self.active_players)):
-            lines.append(f"Player {player_i} owns {len(self.get_player_owned_territory_ids(player_i))} territories with {sum(self.territory_troops[i] for i in self.get_player_owned_territory_ids(player_i))} total troops, and {len(self.player_territory_cards[player_i])} territory cards.")
+            lines.append(f"Player {player_i} owns {len(self.get_player_owned_territory_ids(player_i))} territories with {sum(self.territory_troops[i] for i in self.get_player_owned_territory_ids(player_i))} total troops, and {self.territory_card_counts[player_i]} territory cards.")
         
         return "\n".join(lines)

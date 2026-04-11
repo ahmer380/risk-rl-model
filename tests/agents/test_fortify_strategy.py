@@ -2,7 +2,7 @@ import unittest
 
 from src.agents.fortify_strategy import RandomFortifyStrategy, MinimumFortifyStrategy, MaximumFortifyStrategy
 
-from src.environment.actions import FortifyRouteAction, FortifyAmountAction, SkipAction
+from src.environment.actions import TransferMethod, FortifyFromAction, FortifyToAction, FortifyAmountAction
 
 from src.environment.environment import RiskEnvironment
 from src.environment.game_state import GamePhase
@@ -17,8 +17,7 @@ class TestFortifyStrategy(unittest.TestCase):
 
         self.game_state.current_phase = GamePhase.FORTIFY
         self.game_state.deployment_troops = 0
-        self.game_state.current_territory_transfer = (-1, -1)
-        self.game_state.current_fortify_route = (-1, -1)
+        self.game_state.current_fortify = (-1, -1)
 
         self.game_state.territory_owners = [1] * len(self.game_state.territory_owners)
         self.game_state.territory_troops = [1] * len(self.game_state.territory_troops)
@@ -34,22 +33,22 @@ class TestRandomFortifyStrategy(TestFortifyStrategy):
     def setUp(self):
         super().setUp()
         self.fortify_strategy = RandomFortifyStrategy()
+        self.game_state.territory_troops = [2] * len(self.game_state.territory_troops)
 
     def test_select_action_returns_any_valid_fortify_route_action(self):
-        expected_actions = {
-            FortifyRouteAction(20, 21).__repr__(),
-            FortifyRouteAction(20, 25).__repr__(),
-            FortifyRouteAction(21, 20).__repr__(),
-            FortifyRouteAction(21, 25).__repr__(),
-            FortifyRouteAction(25, 20).__repr__(),
-            FortifyRouteAction(25, 21).__repr__(),
-            SkipAction().__repr__()
+        expected_fortify_actions = {
+            (FortifyFromAction(20), FortifyToAction(21), FortifyAmountAction(TransferMethod.RANDOM)).__repr__(),
+            (FortifyFromAction(20), FortifyToAction(25), FortifyAmountAction(TransferMethod.RANDOM)).__repr__(),
+            (FortifyFromAction(21), FortifyToAction(20), FortifyAmountAction(TransferMethod.RANDOM)).__repr__(),
+            (FortifyFromAction(21), FortifyToAction(25), FortifyAmountAction(TransferMethod.RANDOM)).__repr__(),
+            (FortifyFromAction(25), FortifyToAction(20), FortifyAmountAction(TransferMethod.RANDOM)).__repr__(),
+            (FortifyFromAction(25), FortifyToAction(21), FortifyAmountAction(TransferMethod.RANDOM)).__repr__()
         }
         selected_actions = set()
         for _ in range(50):
-            selected_actions.add(self.fortify_strategy.select_action(self.action_list, self.game_state, self.classic_map).__repr__())
+            selected_actions.add(self.fortify_strategy.compute_best_fortify(self.action_list, self.game_state, self.classic_map).__repr__())
 
-        self.assertEqual(expected_actions, selected_actions)
+        self.assertEqual(expected_fortify_actions, selected_actions)
 
 class TestMinimumFortifyStrategy(TestFortifyStrategy):
     def setUp(self):
@@ -57,13 +56,9 @@ class TestMinimumFortifyStrategy(TestFortifyStrategy):
         self.fortify_strategy = MinimumFortifyStrategy()
 
     def test_strategy_splits_half_troops_between_most_and_least_populous_territories(self):
-        selected_fortify_route_action = self.fortify_strategy.select_action(self.action_list, self.game_state, self.classic_map)
-        self.assertEqual(selected_fortify_route_action, FortifyRouteAction(25, 20))
-        self.environment.step(selected_fortify_route_action)
-        self.action_list = self.environment.get_action_list()
+        expected_fortify_action = (FortifyFromAction(25), FortifyToAction(20), FortifyAmountAction(TransferMethod.SPLIT))
 
-        selected_fortify_amount_action = self.fortify_strategy.select_action(self.action_list, self.game_state, self.classic_map)
-        self.assertEqual(selected_fortify_amount_action, FortifyAmountAction(4))
+        self.assertEqual(self.fortify_strategy.compute_best_fortify(self.action_list, self.game_state, self.classic_map).__repr__(), expected_fortify_action.__repr__())
     
 class TestMaximumFortifyStrategy(TestFortifyStrategy):
     def setUp(self):
@@ -71,17 +66,16 @@ class TestMaximumFortifyStrategy(TestFortifyStrategy):
         self.fortify_strategy = MaximumFortifyStrategy(capitals=1)
 
     def test_strategy_moves_all_troops_from_capital_to_non_capital(self):
-        expected_fortify_route_actions = {FortifyRouteAction(25, 20).__repr__(), FortifyRouteAction(25, 21).__repr__()}
-        selected_fortify_route_actions = set()
+        expected_fortify_actions = {
+            (FortifyFromAction(25), FortifyToAction(20), FortifyAmountAction(TransferMethod.ALL)).__repr__(),
+            (FortifyFromAction(25), FortifyToAction(21), FortifyAmountAction(TransferMethod.ALL)).__repr__(),
+        }
+
+        selected_actions = set()
         for _ in range(50):
-            selected_fortify_route_action = self.fortify_strategy.select_action(self.action_list, self.game_state, self.classic_map)
-            selected_fortify_route_actions.add(selected_fortify_route_action.__repr__())
-        self.assertEqual(expected_fortify_route_actions, selected_fortify_route_actions)
-    
-        self.environment.step(selected_fortify_route_action)
-        self.action_list = self.environment.get_action_list()
-        selected_fortify_amount_action = self.fortify_strategy.select_action(self.action_list, self.game_state, self.classic_map)
-        self.assertEqual(selected_fortify_amount_action, FortifyAmountAction(9))
+            selected_actions.add(self.fortify_strategy.compute_best_fortify(self.action_list, self.game_state, self.classic_map).__repr__())
+
+        self.assertEqual(expected_fortify_actions, selected_actions)
 
 if __name__ == "__main__":
     unittest.main()

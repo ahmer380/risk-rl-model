@@ -90,6 +90,9 @@ class RiskMap:
                 continent_bonuses += continent.bonus
 
         return continent_bonuses
+    
+    def get_total_continent_bonuses(self) -> int:
+        return sum(continent.bonus for continent in self.continents.values())
         
     def __repr__(self):
         return f"RiskMap(name={self.name}, territories={len(self.territories)}, continents={len(self.continents)})"
