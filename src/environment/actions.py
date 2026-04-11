@@ -54,14 +54,17 @@ class DeployAction(Action):
     def __init__(self, territory_id: int):
         self.territory_id = territory_id
     
-    def apply(self, game_state: GameState, _: RiskMap) -> GameState:
-        self.validate_action(game_state, _)
+    def apply(self, game_state: GameState, risk_map: RiskMap) -> GameState:
+        self.validate_action(game_state, risk_map)
         new_state = game_state.copy()
 
         new_state.territory_troops[self.territory_id] += 1
         new_state.deployment_troops -= 1
-            
-        return new_state
+
+        if new_state.deployment_troops == 0:
+            return SkipAction().apply(new_state, risk_map) # Skip to attack phase after deploying all troops
+        else:   
+            return new_state
     
     def validate_action(self, game_state: GameState, risk_map: RiskMap):
         assert game_state.current_phase == GamePhase.DRAFT, "Can only apply DeployAction during draft phase"

@@ -41,6 +41,20 @@ class TestDeployAction(TestAction):
             self.assertEqual(new_state.territory_troops[i], self.game_state.territory_troops[i]) # other territories should remain unchanged
         
         self.assertEqual(new_state.deployment_troops, 2)
+        self.assertEqual(new_state.current_phase, GamePhase.DRAFT)
+    
+    def test_apply_deploy_action_with_one_deployment_troop_remaining(self):
+        self.game_state.territory_owners[0] = 0
+        self.game_state.deployment_troops = 1
+        action = DeployAction(0)
+        new_state = action.apply(self.game_state, self.classic_map)
+
+        self.assertEqual(new_state.territory_troops[0], self.game_state.territory_troops[0] + 1)
+        for i in range(1, len(self.game_state.territory_troops)):
+            self.assertEqual(new_state.territory_troops[i], self.game_state.territory_troops[i])
+        
+        self.assertEqual(new_state.deployment_troops, 0)
+        self.assertEqual(new_state.current_phase, GamePhase.ATTACK) # Should automatically skip to attack phase
 
 class TestBattleFromAction(TestAction):
     def setUp(self):
