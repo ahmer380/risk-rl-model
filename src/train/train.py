@@ -5,7 +5,7 @@ from src.train.rl_agent import RLAgent
 
 def train(map_name: str, num_players: int):
     ppo_trainer = RiskPPO(map_name, num_players)
-    ppo_trainer.train(total_timesteps=10000)
+    ppo_trainer.train()
     ppo_trainer.save("v1")
 
 def load_rl_agent(map_name: str, num_players: int) -> RLAgent:

@@ -14,14 +14,14 @@ from src.train.rl_agent import RLAgent
 
 class RiskGymEnvironment(gymnasium.Env):
     """The Gym environment for training a single RL agent to play Risk. This is NOT a general-purpose Risk environment and should never be used for experimentation outside of training the RL agent."""
-    def __init__(self, risk_map: RiskMap, agent_composition: list[Agent]):
+    def __init__(self, risk_map: RiskMap, agent_composition: list[Agent], max_episode_length: int = 1000):
         assert 2 <= len(agent_composition) <= 6, "At least 2 and at most 6 agents are required to play Risk"
         assert sum(isinstance(agent, RLAgent) for agent in agent_composition) == 1, "Exactly one agent in the composition must be an RLAgent"
 
         self.risk_map = risk_map
         self.rl_agent = next(agent for agent in agent_composition if isinstance(agent, RLAgent))
         self.agents = agent_composition
-        self.max_episode_length = 1000 # NOT the same as max game length, but how many steps the RL agent specifically will take
+        self.max_episode_length = max_episode_length # NOT the same as max game length, but how many steps the RL agent specifically will take
         
         self.episode_length = 0
         self.game_state = GameState(len(agent_composition), len(risk_map.territories), reset_to_initial_state=True)
