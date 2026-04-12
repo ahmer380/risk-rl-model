@@ -17,7 +17,7 @@ def train(map_name: str, num_players: int, clique_size: int, clique_density: str
         risk_map=risk_map,
         num_players=num_players,
     )
-    ppo_trainer.train(total_timesteps=3_000)
+    ppo_trainer.train(total_timesteps=3_000_000)
     ppo_trainer.save()
 
 def parse_args() -> argparse.Namespace:
