@@ -20,7 +20,7 @@ class DummyRLAgent(Agent):
 
 class RiskGymEnvironment(gymnasium.Env):
     """The Gym environment for training a single RL agent to play Risk. This is NOT a general-purpose Risk environment and should never be used for experimentation outside of training the RL agent."""
-    def __init__(self, risk_map: RiskMap, num_players: int, max_episode_length: int = 1000):
+    def __init__(self, risk_map: RiskMap, num_players: int, max_episode_length: int = 500):
         assert 2 <= num_players <= 6, "At least 2 and at most 6 agents are required to play Risk"
 
         self.risk_map = risk_map
@@ -58,7 +58,7 @@ class RiskGymEnvironment(gymnasium.Env):
         observation = self.encode_observation()
 
         # calculate reward
-        reward = self.calculate_reward(previous_state, decoded_action)
+        reward = self.calculate_reward(previous_state)
 
         # check if episode has terminated (i.e. game over, or RL agent eliminated)
         terminated = self.game_state.is_terminal_state() or not self.game_state.active_players[self.get_rl_agent_turn_number()]
@@ -162,7 +162,7 @@ class RiskGymEnvironment(gymnasium.Env):
             
             offset += max_actions
     
-    def calculate_reward(self, previous_state: GameState, previous_action: Action) -> float:
+    def calculate_reward(self, previous_state: GameState) -> float:
         """Calculate the reward for the current state based on the previous state and action."""
         if self.game_state.get_winner() == self.get_rl_agent_turn_number():
             return 1.0
@@ -190,12 +190,6 @@ class RiskGymEnvironment(gymnasium.Env):
                 0.6 * territory_delta + 
                 0.7 * continent_bonus_delta
             )
-        elif isinstance(previous_action, BattleToAction):
-            battle_won = self.game_state.territory_troops[previous_action.defender_territory_id] == 0
-            if battle_won:
-                return 0.1
-            else:
-                return -0.05
         else: # intra-turn actions, as well as stalemates, get no reward
             return 0.0
     

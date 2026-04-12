@@ -90,5 +90,5 @@ class RiskMetricsCallback(BaseCallback):
                 self.total_episodes += 1
                 self.total_wins += 1 if info["win"] else 0
                 self.logger.record("win_rate", self.total_wins / self.total_episodes)
-                self.logger.record("average_episode_length", self.total_episodes / self.num_timesteps)
+                self.logger.record("average_episode_length", self.num_timesteps /self.total_episodes)
         return True
