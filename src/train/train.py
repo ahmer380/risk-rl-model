@@ -5,9 +5,12 @@ from src.environment.map import RiskMap
 from src.train.ppo import RiskPPO
 
 def train(map_name: str, num_players: int):
-    ppo_trainer = RiskPPO(RiskMap.from_json(f"maps/{map_name}.json"), num_players)
-    ppo_trainer.train(total_timesteps=1_000_000)
-    ppo_trainer.save("v2")
+    ppo_trainer = RiskPPO(
+        risk_map=RiskMap.from_json(f"maps/{map_name}.json"),
+        num_players=num_players,
+    )
+    ppo_trainer.train(total_timesteps=3_000_000)
+    ppo_trainer.save()
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a PPO agent for the Risk environment.")
