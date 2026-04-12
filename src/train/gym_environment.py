@@ -181,7 +181,7 @@ class RiskGymEnvironment(gymnasium.Env):
             continent_bonus_delta = (
                 self.risk_map.get_player_continent_bonuses(self.get_rl_agent_turn_number(), self.game_state.territory_owners) -
                 self.risk_map.get_player_continent_bonuses(self.get_rl_agent_turn_number(), self.game_state_at_start_of_rl_turn.territory_owners)
-            ) / self.risk_map.get_total_continent_bonuses()
+            ) / self.risk_map.get_total_continent_bonuses() if self.risk_map.get_total_continent_bonuses() > 0 else 0.0
 
             self.game_state_at_start_of_rl_turn = self.game_state.copy()
 

@@ -11,7 +11,7 @@ class KCliqueGenerator:
         assert density >= 2 / k, "Density must be greater than 2/k to ensure a connected graph"
 
         map_json = {}
-        map_json["name"] = f"{k}-clique with density {density}"
+        map_json["name"] = f"{k}_clique_density_{str(density).replace('.', '_')}"
         map_json["territories"] = [f"T_{i}" for i in range(1, k + 1)]
         map_json["continents"] = ["C_Global"]
         map_json["territory_to_continent"] = {f"T_{i}": "C_Global" for i in range(1, k + 1)}
