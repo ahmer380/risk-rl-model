@@ -109,22 +109,24 @@ class BattleObserver(Observer):
     """Class methods for collecting and summarising aggregate outcome data for experimental anlaysis """
     
     @classmethod
-    def summarise_simulation(cls, observers: list[Self]) -> str:
+    def summarise_simulation(cls, observers: list[Self], rl_agent_performance_test: bool = False) -> str:
         lines = ["#### Battle Simulation Summary ####"]
 
         # Add player-specific battle summaries
         lines.append(f"\n---- Player Battle Statistics ----")
         player_headers = ["Player", "Battle\nwin\nrate (%)", "Average\nbattles\nper turn", "Average\nbattle\ndifferential"]
-        lines.append(tabulate(cls.get_player_battle_statistics(observers), headers=player_headers, tablefmt="grid", colalign=["center"]*len(player_headers)))
+        lines.append(tabulate(cls.get_player_battle_statistics(observers, rl_agent_performance_test), headers=player_headers, tablefmt="grid", colalign=["center"]*len(player_headers)))
         
         return "\n".join(lines)
 
     @classmethod
-    def get_player_battle_statistics(cls, observers: list[Self]) -> list[list]:
+    def get_player_battle_statistics(cls, observers: list[Self], rl_agent_performance_test: bool = False) -> list[list]:
         """Return list of [player_name, battle win rate, average battles per turn, average battle differential] for each player."""
         rows = []
 
-        for player_name in [player.player_name for player in observers[0].core_observer.player_telemetries]: 
+        for player_name in [player.player_name for player in observers[0].core_observer.player_telemetries]:
+            if rl_agent_performance_test and not player_name.startswith("RLAgent"):
+                continue
             # assume the ordering of observer 0 is unshuffled and same as what is parsed in to SimulationRunner
             total_battles, total_successful_battles, total_battle_differential, total_turns = 0, 0, 0, 0
 
@@ -142,4 +144,6 @@ class BattleObserver(Observer):
                 f"{(total_battle_differential / total_battles if total_battles > 0 else 0):.2f}"
             ])
 
+        if rl_agent_performance_test and rows[0][0].startswith("RLAgent"):
+            return [rows[0]] # Only return RLAgent's row, since that's the only one we're interested in for this experiment
         return rows

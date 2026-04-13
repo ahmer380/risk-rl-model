@@ -1,4 +1,4 @@
-from src.agents.agent import Agent, RandomAgent, CommunistAgent, CapitalistAgent
+from src.agents.agent import Agent
 
 from src.environment.map import RiskMap
 
@@ -13,9 +13,15 @@ from src.utils.k_clique_generator import KCliqueGenerator
 
 if __name__ == "__main__":
     Agent.reset_player_ids()
-    risk_map = RiskMap.from_json(json_data=KCliqueGenerator.generate(k=8, density=1.0))
-    agents = [RLAgent(risk_map, 2, "v1"), RandomAgent()]
-    simulation_runner = SimulationRunner("RLAgent vs Communist static player ordering", risk_map, agents, 1000, observers=[OutcomeObserver(), BattleObserver()], shuffle_turn_order=True)
+    risk_map = RiskMap.from_json(json_data=KCliqueGenerator.generate(k=8, density=0.25))
+    simulation_runner = SimulationRunner(
+        title="RLAgent Test",
+        risk_map=risk_map,
+        agents=[RLAgent(risk_map, 2)],
+        num_episodes=1000,
+        observers=[OutcomeObserver(), BattleObserver()],
+        enable_rl_agent_performance_test=True,
+        rl_agent_performance_test_num_players=2
+    )
     simulation_runner.run_simulation()
-    # simulation_runner.summarise_game()
     simulation_runner.summarise_simulation()

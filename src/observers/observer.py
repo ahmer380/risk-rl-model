@@ -35,7 +35,7 @@ class Observer(ABC):
         return self.__class__(core_observer = None)
     
     @classmethod
-    def summarise_simulation(cls, observers: list[Self]) -> str:
+    def summarise_simulation(cls, observers: list[Self], rl_agent_performance_test: bool = False) -> str:
         """Generate a human-readable summary of the observed simulation based on the collected aggregate data for the particular observer"""
         return ""
 
