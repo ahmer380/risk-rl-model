@@ -133,17 +133,19 @@ class Experiment1:
         ax.set_ylim(0, None)
         ax.set_title("Turn Length vs Map Density")
         self.add_common_plot_properties(ax)
+    
+    def plot_results(self):
+        fig, axs = plt.subplots(2, 2, figsize=(14, 8))
+        self.plot_win_rate_graph(axs[0, 0])
+        self.plot_average_finish_position_graph(axs[0, 1])
+        self.plot_action_length_graph(axs[1, 0])
+        self.plot_turn_length_graph(axs[1, 1])
+        fig.tight_layout()
+        fig.savefig(f"experiment_results/experiment1_{CLIQUE_SIZE}_clique")
+        plt.show()
 
 if __name__ == "__main__":
     CLIQUE_SIZE = 16
     experiment = Experiment1(clique_size=CLIQUE_SIZE, agent_composition=[CommunistAgent(), CapitalistAgent(), RandomAgent(), RandomAgent()])
     experiment.run_experiment()
-
-    fig, axs = plt.subplots(2, 2, figsize=(14, 8))
-    experiment.plot_win_rate_graph(axs[0, 0])
-    experiment.plot_average_finish_position_graph(axs[0, 1])
-    experiment.plot_action_length_graph(axs[1, 0])
-    experiment.plot_turn_length_graph(axs[1, 1])
-    fig.tight_layout()
-    fig.savefig(f"experiment_results/experiment1_{CLIQUE_SIZE}_clique")
-    plt.show()
+    experiment.plot_results()
