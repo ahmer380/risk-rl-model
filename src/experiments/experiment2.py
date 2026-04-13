@@ -95,11 +95,13 @@ class Experiment2:
 
     def plot_turn_count_graph(self, ax: plt.Axes):
         ax.plot(self.map_sizes, self.stats["average_turn_count"], color="darkgreen")
+        ax.set_ylim(0, None)
         ax.set_title("Average Turn Count vs Map Size (|M_T|)")
         self.add_common_plot_properties(ax)
 
     def plot_action_count_graph(self, ax: plt.Axes):
         ax.plot(self.map_sizes, self.stats["average_action_count"], color="darkblue")
+        ax.set_ylim(0, None)
         ax.set_title("Average Action Count vs Map Size (|M_T|)")
         self.add_common_plot_properties(ax)
 
