@@ -81,24 +81,26 @@ class Experiment2:
 
     def plot_player_1_win_rate_graph(self, ax: plt.Axes):
         ax.plot(self.map_sizes, self.stats["player_1_win_rate"], color="darkred")
+        ax.axhline(
+            y=53.7,
+            color="black",
+            linestyle="--",
+            linewidth=1,
+            label="Rejection Threshold (α = 0.01, H₀: p = 0.5)",
+        )
         ax.set_ylim(0, 100)
-        ax.set_title("Player 1 Win Rate (%) vs Map Size")
-        ax.set_xlabel("Map Size (|M_T|)")
-        ax.set_ylabel("Win Rate (%)")
+        ax.set_title("Player 1 Win Rate (%) vs Map Size (|M_T|)")
+        ax.legend(loc="upper right")
         self.add_common_plot_properties(ax)
 
     def plot_turn_count_graph(self, ax: plt.Axes):
         ax.plot(self.map_sizes, self.stats["average_turn_count"], color="darkgreen")
-        ax.set_title("Average Turn Count vs Map Size")
-        ax.set_xlabel("Map Size (|M_T|)")
-        ax.set_ylabel("Average Turn Count")
+        ax.set_title("Average Turn Count vs Map Size (|M_T|)")
         self.add_common_plot_properties(ax)
 
     def plot_action_count_graph(self, ax: plt.Axes):
         ax.plot(self.map_sizes, self.stats["average_action_count"], color="darkblue")
-        ax.set_title("Average Action Count vs Map Size")
-        ax.set_xlabel("Map Size (|M_T|)")
-        ax.set_ylabel("Average Action Count")
+        ax.set_title("Average Action Count vs Map Size (|M_T|)")
         self.add_common_plot_properties(ax)
 
     def plot_results(self):
@@ -111,7 +113,6 @@ class Experiment2:
         fig.tight_layout()
         fig.savefig("experiment_results/experiment2")
         plt.show()
-
 
 if __name__ == "__main__":
     experiment = Experiment2()
