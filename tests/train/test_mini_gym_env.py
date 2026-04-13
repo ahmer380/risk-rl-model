@@ -9,15 +9,13 @@ from src.agents.agent import CommunistAgent
 from src.environment.actions import TransferMethod, DeployAction, BattleFromAction, BattleToAction, TransferAction, FortifyFromAction, FortifyToAction, FortifyAmountAction, SkipAction
 from src.environment.map import RiskMap
 
-from src.train.rl_agent import RLAgent
 from src.train.gym_environment import RiskGymEnvironment
 
 class TestMiniGymEnv(unittest.TestCase):
     def setUp(self):
         self.num_players = 2
-        agent_composition = [RLAgent(None), CommunistAgent(disparity=0)]
         self.mini_map = RiskMap.from_json("maps/mini.json")
-        self.runner = RiskGymEnvironment(self.mini_map, agent_composition)
+        self.runner = RiskGymEnvironment(self.mini_map, 2)
 
 class TestGymEnvSimulation(TestMiniGymEnv):
     def test_full_episode_run(self):

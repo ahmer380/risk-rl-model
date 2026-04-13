@@ -25,8 +25,6 @@ class GameRunner:
     
     def run_episode(self):
         self.environment.reset()
-        for agent in self.agents:
-            agent.reset()
         self.observer_manager.notify_game_start()
 
         is_terminal_state = False
