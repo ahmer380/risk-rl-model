@@ -46,6 +46,7 @@ class RiskPPO:
         )
     
     def train(self, total_timesteps: int = 1_000_000):
+        print(f"Training PPO agent on {self.risk_map.name} map with {self.num_players} players for {total_timesteps} timesteps...")
         self.model.learn(
             total_timesteps=total_timesteps,
             progress_bar=True,
