@@ -147,3 +147,11 @@ class BattleObserver(Observer):
         if rl_agent_performance_test and rows[0][0].startswith("RLAgent"):
             return [rows[0]] # Only return RLAgent's row, since that's the only one we're interested in for this experiment
         return rows
+    
+    @classmethod
+    def get_battle_logs(cls, observers: list[Self], player_name: str) -> list[BattleLog]:
+        battle_logs = []
+        for observer in observers:
+            player_telemetry = next((pt for pt in observer.core_observer.player_telemetries if pt.player_name == player_name))
+            battle_logs.extend(player_telemetry.attacks)
+        return battle_logs
