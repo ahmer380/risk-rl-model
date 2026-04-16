@@ -52,17 +52,17 @@ class OutcomeObserver(Observer):
     
     @classmethod
     def get_game_length_statistics(cls, observers: list[Self]) -> list:
-        """Return list of [total, average, max, min] game length in seconds and turns."""
+        """Return list of [total, average (median), max, min] game length in seconds and turns."""
         rows = []
 
-        action_counts = [observer.core_observer.action_count for observer in observers]
-        rows.append(["Action count", sum(action_counts), round(sum(action_counts) / len(action_counts)), max(action_counts), min(action_counts)])
+        action_counts = sorted([observer.core_observer.action_count for observer in observers])
+        rows.append(["Action count", sum(action_counts), action_counts[len(action_counts) // 2], max(action_counts), min(action_counts)])
 
-        turn_counts = [observer.core_observer.turn_count for observer in observers]
-        rows.append(["Turn count", sum(turn_counts), round(sum(turn_counts) / len(turn_counts)), max(turn_counts), min(turn_counts)])
+        turn_counts = sorted([observer.core_observer.turn_count for observer in observers])
+        rows.append(["Turn count", sum(turn_counts), turn_counts[len(turn_counts) // 2], max(turn_counts), min(turn_counts)])
 
         running_times = [round(observer.running_time, 2) for observer in observers]
-        rows.append(["Running time (s)", sum(running_times), round(sum(running_times) / len(running_times), 2), max(running_times), min(running_times)])
+        rows.append(["Running time (s)", sum(running_times), running_times[len(running_times) // 2], max(running_times), min(running_times)])
         
         return rows
     

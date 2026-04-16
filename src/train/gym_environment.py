@@ -166,7 +166,7 @@ class RiskGymEnvironment(gymnasium.Env):
         """Calculate the reward for the current state based on the previous state and action."""
         if self.game_state.get_winner() == self.get_rl_agent_turn_number():
             return 1.0
-        elif not self.game_state.active_players[self.get_rl_agent_turn_number()]:
+        elif not self.game_state.active_players[self.get_rl_agent_turn_number()] or self.episode_length >= self.max_episode_length:
             return -1.0
         elif previous_state.current_phase == GamePhase.FORTIFY and self.game_state.current_phase == GamePhase.DRAFT:
             # Compare the game states between the start of the RL agent's nth and (n+1)th turns

@@ -22,7 +22,7 @@ class Experiment3:
         self,
         risk_map: RiskMap,
         num_players: int,
-        num_episodes: int = 10000
+        num_episodes: int = 10000,
     ):
         self.risk_map = risk_map
         self.num_players = num_players
@@ -31,10 +31,11 @@ class Experiment3:
         Agent.reset_player_ids()
         self.rl_agent = RLAgent(risk_map=self.risk_map, num_players=self.num_players)
         self.simulation_runner = SimulationRunner(
-            title=f"RLAgent Performance Test on {self.risk_map.name} with {self.num_players} players",
+            title=f"RL Agent Performance Test on {self.risk_map.name} with {self.num_players} players",
             risk_map=self.risk_map,
             agents=[self.rl_agent],
             num_episodes=self.num_episodes,
+            max_episode_length=1000, # Avoid skewing statistics with extremely long games
             observers=[OutcomeObserver(), BattleObserver(), DeployObserver()],
             enable_rl_agent_performance_test=True,
             rl_agent_performance_test_num_players=self.num_players
@@ -52,7 +53,7 @@ class Experiment3:
         rl_win_rate = OutcomeObserver.get_winner_distributions(outcome_observers, rl_agent_performance_test=True)[0][-2]
         ax.bar("RL Agent", rl_win_rate, color="darkblue")
         ax.bar("Other Agents", (100 - rl_win_rate), color="darkorange")
-        ax.set_title("RL Agent Win Rate (%)")
+        ax.set_title("Win Rate (%)")
         ax.set_ylim(0, 100)
     
     def plot_rl_battle_heatmap_graph(self, ax: plt.Axes):
@@ -69,7 +70,7 @@ class Experiment3:
         for territory_id, count in sorted(territory_battle_counts.items()):
             ax.bar(self.risk_map.territories[territory_id].name, count / len(rl_battle_logs) * 100, color="darkgreen")
         
-        ax.set_title("RL Agent Battle Distribution (%)")
+        ax.set_title("Battle Distribution (%)")
         ax.set_xlabel("Territory")
     
     def plot_rl_deploy_heatmap_graph(self, ax: plt.Axes):
@@ -86,7 +87,7 @@ class Experiment3:
         for territory_id, count in sorted(territory_deploy_counts.items()):
             ax.bar(self.risk_map.territories[territory_id].name, count / len(rl_deploy_logs) * 100, color="darkred")
         
-        ax.set_title("RL Agent Deploy Distribution (%)")
+        ax.set_title("Deploy Distribution (%)")
         ax.set_xlabel("Territory")
     
     def plot_rl_battle_temporal_graph(self, ax: plt.Axes):
@@ -97,12 +98,6 @@ class Experiment3:
             for observer_manager in self.simulation_runner.game_observations
         ]
         rl_battle_logs = BattleObserver.get_battle_logs(battle_observers, player_name=self.rl_agent.get_name())
-
-        outcome_observers = [
-            next(observer for observer in observer_manager.observers if isinstance(observer, OutcomeObserver))
-            for observer_manager in self.simulation_runner.game_observations
-        ]
-        average_turn_count = OutcomeObserver.get_game_length_statistics(outcome_observers)[1][2]
 
         battle_data_per_turn: dict[int, tuple[int, int]] = defaultdict(lambda: (0, 0)) # key=turn_number, value=(total_battle_count, total_battle_differential)
         for log in rl_battle_logs:
@@ -130,8 +125,6 @@ class Experiment3:
             elif average_battle_differential >= 10:
                 bar_color = "darkgreen"
             ax.bar(turn, total_battle_count / self.num_episodes, color=bar_color, alpha=0.6)
-        
-        ax.axvline(x=average_turn_count, color="black", linestyle="--", label=f"Average Game Length ({average_turn_count} turns)")
 
         legend_bins = [
             ("Disparity < 0", "darkred"),
@@ -144,24 +137,23 @@ class Experiment3:
         ]
         legend_handles = [Patch(facecolor=color, alpha=0.6, label=label) for label, color in legend_bins]
         
-        ax.set_title(f"RL Agent Average Battle Count per Turn (Up to Turn {MAX_TURNS})")
+        ax.set_title(f"Average Battle Count per Turn (Up to Turn {MAX_TURNS})")
         ax.set_xlabel("Turn Number")
         ax.legend(handles=legend_handles, loc="upper right", title="Average Troop Disparity")
         ax.set_xlim(1, MAX_TURNS)
         ax.set_xticks([1] + list(range(5, MAX_TURNS + 1, 5)))
         
     def plot_results(self):
-        fig, ax = plt.subplots(2, 2, figsize=(14, 8))
+        fig, ax = plt.subplots(1, 4, figsize=(20, 5), gridspec_kw={"width_ratios": [0.5, 1, 1, 1]})
         fig.suptitle(f"RL Agent Performance Test on Map: {self.risk_map.name}", fontsize=14, fontweight='bold')
 
-        self.plot_rl_win_rate_graph(ax[0, 0])
-        self.plot_rl_battle_temporal_graph(ax[1, 1])
-        self.plot_rl_deploy_heatmap_graph(ax[0, 1])
-        self.plot_rl_battle_heatmap_graph(ax[1, 0])
+        self.plot_rl_win_rate_graph(ax[0])
+        self.plot_rl_deploy_heatmap_graph(ax[1])
+        self.plot_rl_battle_heatmap_graph(ax[2])
+        self.plot_rl_battle_temporal_graph(ax[3])
 
         fig.tight_layout()
         fig.savefig(f"experiment_results/experiment3_{self.risk_map.name.lower()}")
-        plt.show()
 
 if __name__ == "__main__":
     experiment = Experiment3(risk_map=RiskMap.from_json(json_data=KCliqueGenerator.generate(k=8, density=0.25)), num_players=2)
