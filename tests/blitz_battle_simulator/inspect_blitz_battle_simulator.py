@@ -12,7 +12,9 @@ def run_battle_simulation_multiple_times(attacker_troops: int, defender_troops: 
     print(f"Simulated 1000 battles with {attacker_troops} attackers and {defender_troops} defenders:")
     for (remaining_attacker_troops, remaining_defender_troops), count in outcome_counter.items():
         print(f"{remaining_attacker_troops} remaining attacker(s) and {remaining_defender_troops} remaining defender(s): {count} times ({count/1000:.2%})")
-    print(f"Attacker win rate: {sum(count for (_, defender), count in outcome_counter.items() if defender == 0) / 1000:.2%}")
+    
+    print(f"Predetermined Attacker win rate: {simulator.get_win_probability(attacker_troops, defender_troops):.2%}")
+    print(f"Simulated Attacker win rate: {sum(count for (_, defender), count in outcome_counter.items() if defender == 0) / 1000:.2%}")
     print(f"Simulation took {end_time - start_time:.2f} seconds, average time per battle: {(end_time - start_time) / 1000:.4f} seconds\n")
 
 # Load BlitzBattleSimulator, this may take some time!

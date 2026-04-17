@@ -7,7 +7,11 @@ class AgentSampler:
     @staticmethod
     def sample_agent() -> Agent:
         """Randomly sample an agent type and return an instance of that agent for the given player ID."""
-        return random.choice([RandomAgent(), CommunistAgent(disparity=random.randint(0, 5)), CapitalistAgent(disparity=random.randint(0, 5))])
+        return random.choice([
+            RandomAgent(),
+            CommunistAgent(disparity=random.randint(0, 5)),
+            CapitalistAgent(capitals=random.randint(1, 3), disparity=random.randint(0, 5))]
+        )
 
     @staticmethod
     def sample_agent_composition(num_players: int, min_agents: list[Agent] = []) -> list[Agent]:

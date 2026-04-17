@@ -21,6 +21,17 @@ class BattleLog:
         self.defender_troops = defender_troops
         self.successful_battle = successful_battle
 
+class DeployLog:
+    def __init__(
+        self,
+        turn_number: int,
+        player_id: int,
+        territory_id: int
+    ):
+        self.turn_number = turn_number
+        self.player_id = player_id
+        self.territory_id = territory_id
+
 class PlayerTelemetry:
     """Records metrics of player behaviour during a single game, to be read and written by observers."""
     def __init__(self, player_name: str, turn_number: int):
@@ -30,6 +41,8 @@ class PlayerTelemetry:
         # attributes to be used by the BattleObserver
         self.attacks: list[BattleLog] = [] # log of battles initiated by the player
         self.defenses: list[BattleLog] = [] # log of battles initiated to the player, and outcome (true = failed defense)
+        # attributes to be used by the DeployObserver
+        self.deployments: list[DeployLog] = [] # log of deployments made by the player
         self.eliminated_turn_count: int = None # turn number when the player was eliminated or None if still in the game
 
         # attributes to be used by the TemporalObserver

@@ -34,7 +34,7 @@ class OutcomeObserver(Observer):
     """Class methods for collecting and summarising aggregate outcome data for experimental anlaysis """
     
     @classmethod
-    def summarise_simulation(cls, observers: list[Self]) -> str:
+    def summarise_simulation(cls, observers: list[Self], rl_agent_performance_test: bool = False) -> str:
         lines = ["#### Outcome Simulation Summary ####"]
 
         # Add game length summaries
@@ -46,28 +46,28 @@ class OutcomeObserver(Observer):
         lines.append(f"\n---- Winner Distribution Statistics ----")
         finish_position_headers = ["1st", "2nd", "3rd", "4th", "5th", "6th"]
         headers = ["Player"] + finish_position_headers[:len(observers[0].core_observer.player_telemetries)] + ["Stalemate", "Win\nrate (%)", "Average\nfinish\nposition"]
-        lines.append(tabulate(cls.get_winner_distributions(observers), headers=headers, tablefmt="grid", colalign=["center"]*len(headers)))
+        lines.append(tabulate(cls.get_winner_distributions(observers, rl_agent_performance_test), headers=headers, tablefmt="grid", colalign=["center"]*len(headers)))
         
         return "\n".join(lines)
     
     @classmethod
     def get_game_length_statistics(cls, observers: list[Self]) -> list:
-        """Return list of [total, average, max, min] game length in seconds and turns."""
+        """Return list of [total, average (median), max, min] game length in seconds and turns."""
         rows = []
 
-        action_counts = [observer.core_observer.action_count for observer in observers]
-        rows.append(["Action count", sum(action_counts), round(sum(action_counts) / len(action_counts)), max(action_counts), min(action_counts)])
+        action_counts = sorted([observer.core_observer.action_count for observer in observers])
+        rows.append(["Action count", sum(action_counts), action_counts[len(action_counts) // 2], max(action_counts), min(action_counts)])
 
-        turn_counts = [observer.core_observer.turn_count for observer in observers]
-        rows.append(["Turn count", sum(turn_counts), round(sum(turn_counts) / len(turn_counts)), max(turn_counts), min(turn_counts)])
+        turn_counts = sorted([observer.core_observer.turn_count for observer in observers])
+        rows.append(["Turn count", sum(turn_counts), turn_counts[len(turn_counts) // 2], max(turn_counts), min(turn_counts)])
 
         running_times = [round(observer.running_time, 2) for observer in observers]
-        rows.append(["Running time (s)", sum(running_times), round(sum(running_times) / len(running_times), 2), max(running_times), min(running_times)])
+        rows.append(["Running time (s)", sum(running_times), running_times[len(running_times) // 2], max(running_times), min(running_times)])
         
         return rows
     
     @classmethod
-    def get_winner_distributions(cls, observers: list[Self]) -> list[list]:
+    def get_winner_distributions(cls, observers: list[Self], rl_agent_performance_test: bool = False) -> list[list]:
         """Return list of [player_name, 1st, 2nd, ..., nth, stalemate, win rate, average finish position] for each player."""
         rows = [[0] * (len(observers[0].core_observer.player_telemetries) + 4) for _ in range(len(observers[0].core_observer.player_telemetries))]
         # assume the ordering of observer 0 is unshuffled and same as what is parsed in to SimulationRunner
@@ -78,6 +78,8 @@ class OutcomeObserver(Observer):
         for observer in observers:
             finish_order = sorted(observer.core_observer.player_telemetries, key=lambda x: (x.eliminated_turn_count is not None, -(x.eliminated_turn_count or 0)))
             for i, player_telemetry in enumerate(finish_order):
+                if rl_agent_performance_test and not player_telemetry.player_name.startswith("RLAgent"):
+                    continue # Only interested in RL agent's performance for this experiment, so skip updating stats for other agents
                 row_index = next(index for index, row in enumerate(rows) if row[0] == player_telemetry.player_name)
                 if player_telemetry.eliminated_turn_count is None and not observer.terminal_state.is_terminal_state():
                     rows[row_index][-3] += 1 # stalemate
@@ -89,4 +91,7 @@ class OutcomeObserver(Observer):
             row[-2] = row[1] / completed_episode_count * 100 if completed_episode_count else 0.0 # win rate
             row[-1] = sum(i * row[i] for i in range(1, len(observers[0].core_observer.player_telemetries) + 1)) / (len(observers) - row[-3]) if (len(observers) - row[-3]) else 0.0 # average finish position
         
+        if rows[0][0].startswith("RLAgent") and rl_agent_performance_test:
+            return [rows[0]] # Only return RLAgent's row, since that's the only one we're interested in for this experiment
+
         return rows

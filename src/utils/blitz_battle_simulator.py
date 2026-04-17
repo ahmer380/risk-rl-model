@@ -6,6 +6,9 @@ class BlitzBattleSimulator:
         # key = (attacker_troops, defender_troops), value = {key = (remaining_attacker_troops, remaining_defender_troops), value = probability}
         self.blitz_probability_matrix: dict[tuple[int, int], dict[tuple[int, int], float]] = {}
 
+        # key = (attacker_troops, defender_troops), value = win probability for attacker
+        self.blitz_win_probabilities: dict[tuple[int, int], float] = {} 
+
         with open(f"blitz_probability_matrices/{dimension}_d_blitz_probability_matrix.csv", "r") as file:
             reader = csv.reader(file)
             headers = next(reader)
@@ -18,6 +21,8 @@ class BlitzBattleSimulator:
                     remaining_attacker_troops, remaining_defender_troops = map(int, battle_outcome[1:-1].split("/"))
                     if attacker_troops >= remaining_attacker_troops and defender_troops >= remaining_defender_troops:
                         self.blitz_probability_matrix[(attacker_troops, defender_troops)][(remaining_attacker_troops, remaining_defender_troops)] = float(row[i+1])
+                
+                self.blitz_win_probabilities[(attacker_troops, defender_troops)] = float(row[-1])
     
     def simulate_battle(self, attacker_troops: int, defender_troops: int) -> tuple[int, int]:
         def interpolated_battle(A: int, D: int) -> tuple[int, int]:
@@ -34,7 +39,7 @@ class BlitzBattleSimulator:
         if attacker_troops <= self.dimension and defender_troops <= self.dimension:
             return interpolated_battle(attacker_troops, defender_troops)
          
-        # Otherwise, we are extrapolating from the blitz probability matrix... TODO: Make more accurate!
+        # Otherwise, we are extrapolating from the blitz probability matrix...
         scale = max(attacker_troops, defender_troops) / self.dimension
         A, D = max(1, round(attacker_troops / scale)), max(1, round(defender_troops / scale))
         if A == 1:
@@ -46,6 +51,17 @@ class BlitzBattleSimulator:
             return (1, round(remaining_defender_troops * scale)) # Do not upscale attacker troop if they lose
 
         return (round(remaining_attacker_troops * scale), round(remaining_defender_troops * scale))
+
+    def get_win_probability(self, attacker_troops: int, defender_troops: int) -> float:
+        if attacker_troops <= self.dimension and defender_troops <= self.dimension:
+            return self.blitz_win_probabilities[(attacker_troops, defender_troops)]
+        else:
+            scale = max(attacker_troops, defender_troops) / self.dimension
+            A, D = max(1, round(attacker_troops / scale)), max(1, round(defender_troops / scale))
+            if A == 1:
+                A, D = 2, min(2 * D, self.dimension)
+            
+            return self.blitz_win_probabilities[(A, D)]
 
     def __str__(self):
         lines = []
