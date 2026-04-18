@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from src.agents.draft_strategy import DraftStrategy, RandomDraftStrategy, MinimumDeployStrategy, MaximumDeployStrategy
-from src.agents.attack_strategy import AttackStrategy, WeightedRandomAttackStrategy, SafeBattleStrategy
+from src.agents.draft_strategy import DraftStrategy, RandomDraftStrategy, MinimumDraftStrategy, MaximumDraftStrategy
+from src.agents.attack_strategy import AttackStrategy, WeightedRandomAttackStrategy, SafeAttackStrategy
 from src.agents.fortify_strategy import FortifyStrategy, RandomFortifyStrategy, MinimumFortifyStrategy, MaximumFortifyStrategy
 
 from src.environment.actions import TransferMethod, Action, ActionList
@@ -66,8 +66,8 @@ class CommunistAgent(Agent):
     """Prioritises each territory equally, deploying/fortifying to the territory with the fewest troops at a given time"""
     def __init__(self, disparity: int = 3):
         super().__init__(
-            MinimumDeployStrategy(),
-            SafeBattleStrategy(disparity=disparity, transfer_method=TransferMethod.SPLIT),
+            MinimumDraftStrategy(),
+            SafeAttackStrategy(disparity=disparity, transfer_method=TransferMethod.SPLIT),
             MinimumFortifyStrategy()
         )
     
@@ -79,8 +79,8 @@ class CapitalistAgent(Agent):
     """Concentrates troops on a small set of strong territories."""
     def __init__(self, capitals: int = 1, disparity: int = 5):
         super().__init__(
-            MaximumDeployStrategy(capitals),
-            SafeBattleStrategy(disparity=disparity, transfer_method=TransferMethod.ALL),
+            MaximumDraftStrategy(capitals),
+            SafeAttackStrategy(disparity=disparity, transfer_method=TransferMethod.ALL),
             MaximumFortifyStrategy(capitals),
         )
     

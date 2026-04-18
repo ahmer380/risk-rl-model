@@ -1,6 +1,6 @@
 import unittest
 
-from src.agents.attack_strategy import WeightedRandomAttackStrategy, SafeBattleStrategy, TransferMethod
+from src.agents.attack_strategy import WeightedRandomAttackStrategy, SafeAttackStrategy, TransferMethod
 
 from src.environment.actions import BattleFromAction, BattleToAction, TransferAction, SkipAction
 from src.environment.environment import RiskEnvironment
@@ -65,11 +65,11 @@ class TestWeightedRandomAttackStrategy(TestAttackStrategy):
         
         self.assertEqual(selected_action, SkipAction())
 
-class TestSafeBattleStrategy(TestAttackStrategy):
+class TestSafeAttackStrategy(TestAttackStrategy):
     def setUp(self):
         super().setUp()
 
-        self.attack_strategy = SafeBattleStrategy(disparity=3, transfer_method=TransferMethod.SPLIT)
+        self.attack_strategy = SafeAttackStrategy(disparity=3, transfer_method=TransferMethod.SPLIT)
 
     def test_select_action_returns_best_battle_when_disparity_met(self):
         selected_action = self.attack_strategy.compute_best_battle(self.action_list, self.game_state, self.classic_map)
@@ -77,7 +77,7 @@ class TestSafeBattleStrategy(TestAttackStrategy):
         self.assertEqual(selected_action, (BattleFromAction(25), BattleToAction(21)))
     
     def test_select_action_returns_skip_when_disparity_not_met(self):
-        self.attack_strategy = SafeBattleStrategy(disparity=4)
+        self.attack_strategy = SafeAttackStrategy(disparity=4, transfer_method=TransferMethod.SPLIT)
         selected_action = self.attack_strategy.select_action(self.action_list, self.game_state, self.classic_map)
         
         self.assertEqual(selected_action, SkipAction())
@@ -107,7 +107,7 @@ class TestTransferMethod(TestAttackStrategy):
         self.game_state.territory_troops[20] = 0
         self.game_state.current_battle = (25, 20)
         self.action_list = self.environment.get_action_list()
-        self.attack_strategy = SafeBattleStrategy(disparity=3)
+        self.attack_strategy = SafeAttackStrategy(disparity=3, transfer_method=TransferMethod.SPLIT)
 
     def test_select_non_battle_action_random(self):
         self.attack_strategy.transfer_method = TransferMethod.RANDOM

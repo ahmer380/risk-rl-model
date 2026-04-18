@@ -36,6 +36,7 @@ class FortifyStrategy(Strategy, ABC):
         """Computes the best fortify action to take based on the current position, or None if a skip action should be taken instead."""
 
 class RandomFortifyStrategy(FortifyStrategy):
+    """Select a random fortify action."""
     def compute_best_fortify(self, valid_actions: ActionList, game_state: GameState, risk_map: RiskMap) -> tuple[FortifyFromAction, FortifyToAction, FortifyAmountAction]:
         selected_fortify_from_action = random.choice(valid_actions.fortify_from_actions)
         forwarded_game_state = selected_fortify_from_action.apply(game_state, risk_map)

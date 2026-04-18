@@ -1,6 +1,6 @@
 import unittest
 
-from src.agents.draft_strategy import RandomDraftStrategy, MinimumDeployStrategy, MaximumDeployStrategy, ContinentalDeployStrategy
+from src.agents.draft_strategy import RandomDraftStrategy, MinimumDraftStrategy, MaximumDraftStrategy, ContinentalDraftStrategy
 
 from src.environment.actions import DeployAction
 from src.environment.environment import RiskEnvironment
@@ -48,20 +48,20 @@ class TestRandomDraftStrategy(TestDraftStrategy):
             selected_action = self.draft_strategy.select_action(self.action_list, self.game_state, self.classic_map)
             self.assertIn(selected_action, self.action_list.deploy_actions)
 
-class TestMinimumDeployStrategy(TestDraftStrategy):
+class TestMinimumDraftStrategy(TestDraftStrategy):
     def setUp(self):
         super().setUp()
-        self.draft_strategy = MinimumDeployStrategy()
+        self.draft_strategy = MinimumDraftStrategy()
 
     def test_select_action_returns_lowest_troop_deploy(self):
         selected_action = self.draft_strategy.select_action(self.action_list, self.game_state, self.classic_map)
 
         self.assertEqual(selected_action, DeployAction(35))
 
-class TestMaximumDeployStrategy(TestDraftStrategy):
+class TestMaximumDraftStrategy(TestDraftStrategy):
     def setUp(self):
         super().setUp()
-        self.draft_strategy = MaximumDeployStrategy(capitals=2)
+        self.draft_strategy = MaximumDraftStrategy(capitals=2)
 
     def test_select_action_returns_one_of_top_capital_deploys(self):
         expected_actions = {DeployAction(10).__repr__(),DeployAction(26).__repr__(), DeployAction(27).__repr__(), DeployAction(37).__repr__()}
@@ -71,10 +71,10 @@ class TestMaximumDeployStrategy(TestDraftStrategy):
 
         self.assertEqual(expected_actions, selected_actions)
 
-class TestContinentalDeployStrategy(TestDraftStrategy):
+class TestContinentalDraftStrategy(TestDraftStrategy):
     def setUp(self):
         super().setUp()
-        self.draft_strategy = ContinentalDeployStrategy()
+        self.draft_strategy = ContinentalDraftStrategy()
 
     def test_select_action_returns_deploy_in_most_controlled_continent(self):
         expected_actions = {DeployAction(9).__repr__(), DeployAction(10).__repr__(), DeployAction(11).__repr__(), DeployAction(12).__repr__()}
