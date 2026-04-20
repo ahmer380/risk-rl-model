@@ -44,7 +44,7 @@ class SimulationRunner:
     
     def run_simulation(self):
         for episode in range(self.num_episodes):
-            print(f"\rStarting episode {episode + 1}/{self.num_episodes}", end="")
+            print(f"\rStarting episode {episode + 1}/{self.num_episodes} for {self.title}...", end="")
             observers = [observer.clean_copy() for observer in self.observers]
             if episode > 0: # we never shuffle turn order for the first episode
                 if self.rl_agent_performance_test:
