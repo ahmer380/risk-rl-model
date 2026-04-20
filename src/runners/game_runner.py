@@ -36,8 +36,8 @@ class GameRunner:
             self.observer_manager.notify_action_list_generated(action_list)
 
             selected_action = self.agents[previous_state.current_player].select_action(action_list, previous_state, self.risk_map)
-            current_state, reward, is_terminal_state = self.environment.step(selected_action)
-            self.observer_manager.notify_action_taken(selected_action, previous_state, current_state, reward)
+            current_state, is_terminal_state = self.environment.step(selected_action)
+            self.observer_manager.notify_action_taken(selected_action, previous_state, current_state)
 
             episode_length += 1
 

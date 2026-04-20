@@ -46,7 +46,6 @@ class GameState:
          - All players must approximately own the same number of territories
          - If possible, no two bordering territories are owned by the same player (IGNORE FOR NOW)
         '''
-        # TODO: A reasonable initial heuristic, but extend to also accept static values 
         troops_per_player = max(1, round(num_territories / num_players)) * 4
         
         self.territory_owners = [-1] * num_territories

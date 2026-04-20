@@ -12,7 +12,7 @@ class TestEnvironment(unittest.TestCase):
 
     def test_random_game_simulation(self):
         for _ in range(10000):
-            _, _, is_terminal = self.env.step(self.env.get_action_list().get_random_action())
+            _, is_terminal = self.env.step(self.env.get_action_list().get_random_action())
             if is_terminal:
                 break
 
