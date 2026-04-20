@@ -6,18 +6,15 @@ from src.train.ppo import RiskPPO
 
 from src.utils.k_clique_generator import KCliqueGenerator
 
-def train(map_name: str, num_players: int, clique_size: int, clique_density: str):
+def train(map_name: str, num_players: int, total_timesteps: int, clique_size: int, clique_density: str):
     if map_name.startswith("clique"):
         density = 2/clique_size if clique_density.lower() == "min" else 1.0
         risk_map = RiskMap.from_json(json_data=KCliqueGenerator.generate(k=clique_size, density=density))
     else:
         risk_map = RiskMap.from_json(f"maps/{map_name}.json")
 
-    ppo_trainer = RiskPPO(
-        risk_map=risk_map,
-        num_players=num_players,
-    )
-    ppo_trainer.train(total_timesteps=3_000_000)
+    ppo_trainer = RiskPPO(risk_map=risk_map, num_players=num_players)
+    ppo_trainer.train(total_timesteps=total_timesteps)
     ppo_trainer.save()
 
 def parse_args() -> argparse.Namespace:
@@ -25,14 +22,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--map_name",
         type=str,
-        default="mini",
-        help="Map name to train on (e.g. mini, classic, clique). Defaults to mini.",
+        required=True,
+        help="Map name to train on (e.g. mini, classic, clique).",
     )
     parser.add_argument(
         "--num_players",
         type=int,
-        default=2,
-        help="Number of players in the environment. Defaults to 2.",
+        required=True,
+        help="Number of players in the environment.",
+    )
+    parser.add_argument(
+        "--total_timesteps",
+        type=int,
+        default=10_000_000,
+        help="Total number of timesteps to train for. Defaults to 10,000,000.",
     )
     parser.add_argument(
         "--clique_size",
@@ -48,4 +51,4 @@ def parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = parse_args()
-    train(args.map_name, args.num_players, args.clique_size, args.clique_density)
+    train(args.map_name, args.num_players, args.total_timesteps, args.clique_size, args.clique_density)

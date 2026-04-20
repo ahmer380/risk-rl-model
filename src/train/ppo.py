@@ -45,7 +45,7 @@ class RiskPPO:
             **self.hyperparameters,
         )
     
-    def train(self, total_timesteps: int = 1_000_000):
+    def train(self, total_timesteps: int):
         print(f"Training PPO agent on {self.risk_map.name} map with {self.num_players} players for {total_timesteps} timesteps...")
         self.model.learn(
             total_timesteps=total_timesteps,
@@ -63,7 +63,9 @@ class RiskPPO:
         return decoded_action
 
     def save(self):
-        self.model.save(f"models/{self.risk_map.name}_map_{self.num_players}_player/{self.model_name}".lower())
+        filename = f"models/{self.risk_map.name}_map_{self.num_players}_player/{self.model_name}".lower()
+        self.model.save(filename)
+        print(f"Saved PPO model to {filename}")
     
     @classmethod
     def load(cls, risk_map: RiskMap, num_players: int, model_name: str = None) -> Self:
