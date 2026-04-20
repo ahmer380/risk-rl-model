@@ -10,17 +10,11 @@ class RiskEnvironment:
         self.num_players = num_players
         self.current_state = GameState(num_players, len(risk_map.territories), True)
 
-    def step(self, action: Action) -> Tuple[GameState, float, bool]: # Returns (new_state, reward, is_terminal_state)
+    def step(self, action: Action) -> Tuple[GameState, bool]: # Returns (new_state, is_terminal_state)
         previous_state = self.current_state
         self.current_state = action.apply(self.current_state, self.map)
 
-        return (self.current_state, self.compute_reward(previous_state), self.current_state.is_terminal_state()) 
-    
-    def compute_reward(self, previous_state: GameState) -> float:
-        if self.current_state.is_terminal_state():
-            return 1.0
-        
-        return 0.0
+        return (self.current_state, self.current_state.is_terminal_state()) 
 
     def reset(self):
         self.current_state.reset_to_initial_state()

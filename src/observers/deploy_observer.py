@@ -8,7 +8,7 @@ from src.observers.player_telemetry import DeployLog
 
 class DeployObserver(Observer):
     """Observer for tracking deploy events for experimental analysis."""
-    def on_action_taken(self, action: Action, previous_state: GameState, current_state: GameState, _: float):
+    def on_action_taken(self, action: Action, previous_state: GameState, _: GameState):
         if isinstance(action, DeployAction):
             deploy_log = DeployLog(
                 turn_number=self.core_observer.turn_count,

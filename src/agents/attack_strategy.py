@@ -52,7 +52,8 @@ class WeightedRandomAttackStrategy(AttackStrategy):
         else:
             return None
 
-class SafeBattleStrategy(AttackStrategy):
+class SafeAttackStrategy(AttackStrategy):
+    """Select the battle with the greatest disparity in troops between the attacker and defender, but only if that disparity is above a certain threshold."""
     def __init__(self, disparity: int, transfer_method: TransferMethod = TransferMethod.RANDOM):
         super().__init__(transfer_method)
         self.disparity = disparity

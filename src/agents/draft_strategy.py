@@ -16,12 +16,12 @@ class RandomDraftStrategy(DraftStrategy):
     def select_action(self, valid_actions: ActionList, _game_state: GameState, _risk_map: RiskMap) -> Action:
         return valid_actions.get_random_action()
     
-class MinimumDeployStrategy(DraftStrategy):
+class MinimumDraftStrategy(DraftStrategy):
     """Deploy to the territory with the fewest troops."""
     def select_action(self, valid_actions: ActionList, game_state: GameState, _: RiskMap) -> Action:
         return min(valid_actions.deploy_actions, key=lambda action: game_state.territory_troops[action.territory_id])
 
-class MaximumDeployStrategy(DraftStrategy):
+class MaximumDraftStrategy(DraftStrategy):
     """Deploy to one of the top-capitals territories with the most troops."""
     def __init__(self, capitals: int):
         self.capitals = capitals
@@ -38,7 +38,7 @@ class MaximumDeployStrategy(DraftStrategy):
             threshold_troop_count = sorted([game_state.territory_troops[territory_id] for territory_id in player_owned_territory_ids], reverse=True)[self.capitals - 1]
             return [territory_id for territory_id in player_owned_territory_ids if game_state.territory_troops[territory_id] >= threshold_troop_count]
 
-class ContinentalDeployStrategy(DraftStrategy):
+class ContinentalDraftStrategy(DraftStrategy):
     """Deploy to a territory inside a continent the player has the most current control over."""
     def select_action(self, valid_actions: ActionList, game_state: GameState, risk_map: RiskMap) -> Action:
         continent_c_scores = self.get_continent_c_scores(game_state.get_player_owned_territory_ids(), risk_map)

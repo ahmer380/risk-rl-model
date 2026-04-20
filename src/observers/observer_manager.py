@@ -33,9 +33,9 @@ class ObserverManager():
         for observer in self.observers:
             observer.on_action_list_generated(action_list)
     
-    def notify_action_taken(self, action: Action, previous_state: GameState, current_state: GameState, reward: float):
+    def notify_action_taken(self, action: Action, previous_state: GameState, current_state: GameState):
         for observer in self.observers:
-            observer.on_action_taken(action, previous_state, current_state, reward)
+            observer.on_action_taken(action, previous_state, current_state)
     
     def notify_game_end(self, terminal_state: GameState):
         for observer in self.observers:

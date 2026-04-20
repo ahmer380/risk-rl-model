@@ -27,7 +27,7 @@ class ActionCountObserver(Observer):
         for action_type in self.action_counts_this_turn.keys():
             self.action_counts_this_turn[action_type][0] = max(self.action_counts_this_turn[action_type][0], len(action_list.get_action_type_list_by_name(action_type)))
     
-    def on_action_taken(self, action: Action, previous_state: GameState, current_state: GameState, _: float):
+    def on_action_taken(self, action: Action, previous_state: GameState, current_state: GameState):
         self.action_counts_this_turn[action.get_name()][1] += 1
 
         if previous_state.current_phase == GamePhase.FORTIFY and current_state.current_phase == GamePhase.DRAFT:

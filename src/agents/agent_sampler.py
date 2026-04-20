@@ -8,7 +8,7 @@ class AgentSampler:
     def sample_agent() -> Agent:
         """Randomly sample an agent type and return an instance of that agent for the given player ID."""
         return random.choice([
-            RandomAgent(),
+            RandomAgent(battle_weight=random.uniform(0.8, 1.0)),
             CommunistAgent(disparity=random.randint(0, 5)),
             CapitalistAgent(capitals=random.randint(1, 3), disparity=random.randint(0, 5))]
         )
