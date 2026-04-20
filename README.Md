@@ -59,19 +59,20 @@ Training is implemented in `src/train/train.py` and utilises `RiskPPO` from `src
 Pass custom map and player count:
 
 ```bash
-python src/train/train.py --map_name classic --num_players 4
+python -m src.train.train --map_name classic --num_players 4
 ```
 
 Supported executable parameters:
-- `--map_name`: map name to train on (`mini`, `classic`, or a value starting with `clique`)
-- `--num_players`: number of players in the training environment
-- `--clique_size`: required when using a clique-generated map
-- `--clique_density`: required when using a clique-generated map (`min` or `max`)
+- `--map_name`: Map name to train on (`mini`, `classic`, or a value starting with `clique`)
+- `--num_players`: Number of players in the training environment
+- `--total_timesteps`: Total number of timesteps to train for. Defaults to 10,000,000
+- `--clique_size`: Required when using a clique-generated map
+- `--clique_density`: Required when using a clique-generated map (`min` or `max`)
 
 Example for clique map training:
 
 ```bash
-python src/train/train.py --map_name clique --num_players 2 --clique_size 8 --clique_density min
+python -m src.train.train --map_name clique --num_players 2 --clique_size 8 --clique_density min
 ```
 
 ## Run Pre-Defined Experiments
@@ -79,25 +80,25 @@ python src/train/train.py --map_name clique --num_players 2 --clique_size 8 --cl
 The included example experiment is `src/experiments/mini_map.py`.
 
 What it does:
-- loads map: `maps/mini.json`
-- uses agents: `CommunistAgent` vs `CommunistAgent`
-- runs two scenarios (fixed turn order and shuffled turn order)
-- runs `1000` simulation episodes per scenario
-- tracks telemetry with `OutcomeObserver` and `BattleObserver`
+- Loads map: `maps/mini.json`
+- Uses agents: `CommunistAgent` vs `CommunistAgent`
+- Runs two scenarios (fixed turn order and shuffled turn order)
+- Runs `1000` simulation episodes per scenario
+- Tracks telemetry with `OutcomeObserver` and `BattleObserver`
 
 Run it:
 
 ```bash
-python src/experiments/mini_map.py
+python -m src.experiments.mini_map
 ```
 
 The script prints aggregate simulation summaries to the console.
 
 Other predefined experiments:
-- `python src/experiments/classic.py`
-- `python src/experiments/experiment1.py`
-- `python src/experiments/experiment2.py`
-- `python src/experiments/experiment3.py`
+- `python -m src.experiments.classic`
+- `python -m src.experiments.experiment1`
+- `python -m src.experiments.experiment2`
+- `python -m src.experiments.experiment3`
 
 ## Define Your Own Experiment!
 
