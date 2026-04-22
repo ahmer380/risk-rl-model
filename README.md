@@ -1,5 +1,7 @@
 # Risk RL Model
 
+Research Paper Link: https://drive.google.com/file/d/1j3zGSqBtBqBUQntpcW1GUVu4ui1TRLU1/view
+
 This repository contains the experimental framework developed for my research project investigating how reinforcement learning agents develop strategic behaviour in a Risk-inspired board game environment. It serves as a controlled testbed for analysing how map topology, player count, and opponent composition influence emergent strategy. The framework integrates a Proximal Policy Optimisation (PPO) training pipeline, rule-based baseline agents, and a modular simulation and telemetry system, enabling reproducible experiments and systematic evaluation of learned policies.
 
 This repository includes:
